@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RESULTADO: ${{ runner.temp }}/resultado.json
+  RESULTADO: /tmp/resultado.json
 
 jobs:
   rodar:
