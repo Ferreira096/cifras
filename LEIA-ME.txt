@@ -30,6 +30,25 @@ No app, toque na chave (🔑), cole o token e crie um PIN (minimo 6 caracteres).
 CIFRADO no aparelho com esse PIN; o PIN e pedido uma vez a cada abertura, na primeira
 gravacao. Sem token o app so le. Sem internet, abre a copia local.
 
+RIFFS: QUE NOTAS A MUSICA ESTA TOCANDO
+--------------------------------------
+Em cada riff (trecho do video, ex.: 1:48 a 1:54) ha tres jeitos de o app DETECTAR as notas:
+  🎤 microfone        celular: o app toca o trecho no video e ouve pelo microfone. Volume
+                      alto, sem fone, aparelho perto do alto-falante (ou de outro aparelho
+                      tocando a musica).
+  🖥 audio da guia     PC (Chrome/Edge): escolha ESTA guia na janela e marque "Compartilhar
+                      audio da guia". Som limpo, melhor resultado.
+  📁 arquivo de audio  o arquivo da musica (mp3/m4a/wav): o app analisa so o trecho do riff.
+                      Mais preciso de todos; o tempo do arquivo precisa bater com o do video.
+O resultado mostra as notas presentes no trecho (com oitava), o acorde provavel e a
+sequencia de nota mais forte por instante (ex.: E5(0.5s) G#5(0.5s) B5(0.5s)), desenhadas
+no piano. Fica salvo no riff. E uma leitura por espectro, nao um ouvido humano: funciona
+bem para linha de teclado/guitarra e acordes simples; em trecho cheio (bateria, voz, baixo
+junto) ele lista as notas dominantes. Use como ponto de partida e confira no instrumento.
+O YouTube nao entrega o audio ao site (o player e de outra origem), por isso a captacao e
+pelo aparelho.
+Apagar um riff: botao 🗑 no proprio cartao.
+
 INSTALAR NO CELULAR
 -------------------
 Chrome -> abrir o endereco -> menu ⋮ -> "Adicionar a tela inicial".

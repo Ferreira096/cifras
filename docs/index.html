@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7FtopplX4V4X8mUsMdJKVfwWamF0FH82Hkok3abhGr8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sXy1esv50wgBvW8Bu7o357CSa8nRNyODaw+NxDPU/iw=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icone-192.png">
@@ -102,6 +102,9 @@ details summary{cursor:pointer;font-size:13px;color:var(--sec);margin-top:4px}
 .riff .notas{font-family:var(--mono);color:var(--acorde);white-space:pre-wrap;margin:8px 0 4px;font-size:15px;line-height:1.5}
 .riff .obs{color:var(--tx2);font-size:13px;white-space:pre-wrap}
 .riff.tocando{border-color:var(--acorde)}
+.detectar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.detResultado .aviso{margin:8px 0 0}
+.detResultado .notas{white-space:pre-wrap;font-size:14px}
 .form{display:grid;gap:8px;margin-top:10px}
 .form label{font-size:12px;color:var(--tx2)}
 .form .linha2{display:flex;gap:8px;align-items:center}
@@ -214,6 +217,95 @@ function marcasDeNotas(txt){
   const marcas={}; let ordem=0;
   for(const t of String(txt).split(/[\s,|/-]+/)){const m=t.match(/^([A-G][#b]?)(\d)?$/); if(!m||IDX[m[1]]==null) continue; let n=IDX[m[1]]; if(m[2]!=null) n+=(Math.max(0,Math.min(1,+m[2]-3)))*12; else if(marcas[n]!=null) n+=12; marcas[n]=ordem===0?'raiz':'nota'; ordem++;}
   return marcas;
+}
+
+/* ====================== deteccao de notas (audio) ======================
+   O YouTube nao entrega o audio ao site (iframe de outra origem). O que da para fazer,
+   sem servidor: captar o som pelo microfone (celular) ou pelo audio da propria guia (PC,
+   getDisplayMedia), ou ler um arquivo de audio da musica. Depois: FFT por quadro, chroma
+   (energia por classe de nota) para as notas do trecho e o acorde provavel, e HPS
+   (produto harmonico) para a nota mais forte de cada instante, virando uma sequencia. */
+function fft(re,im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+  for(let len=2;len<=n;len<<=1){ const ang=-2*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const a=i+j,b=a+len/2; const tr=re[b]*cr-im[b]*ci, ti=re[b]*ci+im[b]*cr; re[b]=re[a]-tr; im[b]=im[a]-ti; re[a]+=tr; im[a]+=ti; const ncr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=ncr; } } }
+}
+const nomeMidi=(m)=>NOTAS_S[((m%12)+12)%12]+(Math.floor(m/12)-1);
+function analisarPCM(pcm,sr){
+  const N=4096, hop=1024, win=new Float32Array(N); for(let i=0;i<N;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));
+  const chroma=new Float64Array(12), porMidi=new Float64Array(128), quadros=[];
+  const re=new Float32Array(N), im=new Float32Array(N), mag=new Float32Array(N/2);
+  const bMin=Math.max(1,Math.floor(55*N/sr)), bMax=Math.min(N/2-1,Math.ceil(2500*N/sr));
+  let limiar=0; const energias=[];
+  for(let s=0;s+N<=pcm.length;s+=hop){ let e=0; for(let i=0;i<N;i++) e+=pcm[s+i]*pcm[s+i]; energias.push(e/N); }
+  if(!energias.length) throw new Error('Trecho curto demais para analisar.');
+  limiar=Math.max(1e-7, Math.max(...energias)*0.002); // abaixo disso e silencio/ruido de fundo
+  let q=0;
+  for(let s=0;s+N<=pcm.length;s+=hop,q++){
+    if(energias[q]<limiar){ quadros.push({t:s/sr,midi:-1}); continue; }
+    for(let i=0;i<N;i++){ re[i]=pcm[s+i]*win[i]; im[i]=0; }
+    fft(re,im);
+    for(let k=0;k<N/2;k++) mag[k]=Math.hypot(re[k],im[k]);
+    // so os PICOS do espectro contam: somar todas as raias espalha a energia de uma nota nas
+    // vizinhas (lobo principal da janela) e inventa um C# ao lado de um C.
+    for(let k=bMin;k<=bMax;k++){ if(!(mag[k]>mag[k-1]&&mag[k]>=mag[k+1])) continue; const a=mag[k-1],b=mag[k],c=mag[k+1]; let d=0.5*(a-c)/(a-2*b+c); if(!isFinite(d)||Math.abs(d)>1) d=0; const m=69+12*Math.log2((k+d)*sr/N/440), mi=Math.round(m); if(Math.abs(m-mi)>0.5) continue; const w=b*b; chroma[((mi%12)+12)%12]+=w; if(mi>=0&&mi<128) porMidi[mi]+=w; }
+    let melhor=-1, melhorV=0;
+    for(let k=bMin;k<=bMax;k++){ let v=mag[k]; v*=(2*k<N/2)?mag[2*k]:0; v*=(3*k<N/2)?mag[3*k]:0; if(v>melhorV){melhorV=v;melhor=k;} }
+    if(melhor<1){ quadros.push({t:s/sr,midi:-1}); continue; }
+    let f=melhor*sr/N; if(melhor<N/2-1){ const a=mag[melhor-1],b=mag[melhor],c=mag[melhor+1]; const d=0.5*(a-c)/(a-2*b+c); if(isFinite(d)&&Math.abs(d)<1) f=(melhor+d)*sr/N; }
+    quadros.push({t:s/sr,midi:Math.round(69+12*Math.log2(f/440))});
+  }
+  const max=Math.max(...chroma); if(!(max>0)) throw new Error('Nao captei som nesse trecho. Aumente o volume ou aproxime o microfone.');
+  const notas=[]; for(let p=0;p<12;p++) if(chroma[p]>=max*0.30){ let oit=-1,ov=0; for(let m=p;m<128;m+=12) if(porMidi[m]>ov){ov=porMidi[m];oit=m;} notas.push({p,peso:chroma[p]/max,nome:oit>=0?nomeMidi(oit):NOTAS_S[p]}); }
+  notas.sort((a,b)=>b.peso-a.peso);
+  let acorde='', acV=-Infinity;
+  for(let r=0;r<12;r++) for(const [suf,iv] of [['',[0,4,7]],['m',[0,3,7]]]){ let v=0; for(let p=0;p<12;p++) v+=iv.includes((p-r+12)%12)?chroma[p]:-0.6*chroma[p]; if(v>acV){acV=v;acorde=NOTAS_S[r]+suf;} }
+  const med=quadros.map((x,i)=>{ const j=quadros.slice(Math.max(0,i-2),i+3).map(y=>y.midi).filter(m=>m>0).sort((a,b)=>a-b); return j.length?j[Math.floor(j.length/2)]:-1; });
+  const seq=[]; let atual=-1, ini=0, n=0;
+  for(let i=0;i<=med.length;i++){ const m=i<med.length?med[i]:-2; if(m===atual){n++;continue;} if(atual>0&&n>=4) seq.push({midi:atual,ini:quadros[ini].t,dur:(i-ini)*hop/sr}); atual=m; ini=i; n=1; }
+  return {notas,acorde,seq,dur:pcm.length/sr};
+}
+const esperar=(cond,ms)=>new Promise((res,rej)=>{ const t0=Date.now(); const id=setInterval(()=>{ let ok=false; try{ ok=cond(); }catch(e){} if(ok){clearInterval(id);res();} else if(Date.now()-t0>ms){clearInterval(id);rej(new Error('O video nao chegou ao trecho a tempo.'));} },60); });
+async function captarTrecho(r,modo,progresso){
+  if(!player||!player.seekTo) throw new Error('Abra o video primeiro (▶ Video / Riffs).');
+  if(!navigator.mediaDevices) throw new Error('Este navegador nao permite captar audio (precisa de https).');
+  let stream;
+  if(modo==='aba'){ if(!navigator.mediaDevices.getDisplayMedia) throw new Error('Captura da guia so existe no Chrome/Edge de PC. No celular use o microfone.'); progresso('Escolha ESTA guia e marque "Compartilhar audio da guia"...'); stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true}); }
+  else { progresso('Pedindo o microfone...'); stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}); }
+  if(!stream.getAudioTracks().length){ stream.getTracks().forEach(t=>t.stop()); throw new Error('Nao veio audio. No PC, marque "Compartilhar audio da guia" na janela de escolha.'); }
+  const AC=window.AudioContext||window.webkitAudioContext, ac=new AC(); await ac.resume();
+  const src=ac.createMediaStreamSource(stream), proc=ac.createScriptProcessor(4096,1,1), mudo=ac.createGain(); mudo.gain.value=0;
+  const pedacos=[]; let gravando=false;
+  proc.onaudioprocess=(e)=>{ if(gravando) pedacos.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+  src.connect(proc); proc.connect(mudo); mudo.connect(ac.destination);
+  try{
+    pararLoop(); player.setPlaybackRate(1); player.seekTo(Math.max(0,r.ini-0.3),true); player.playVideo();
+    progresso('Esperando o trecho comecar...');
+    await esperar(()=>player.getPlayerState()===1&&player.getCurrentTime()>=r.ini-0.05,15000);
+    gravando=true; progresso('Ouvindo o trecho ('+fmtT(r.ini)+' a '+fmtT(r.fim)+')...');
+    await esperar(()=>player.getCurrentTime()>=r.fim,(r.fim-r.ini)*1000+15000);
+    gravando=false; player.pauseVideo();
+  } finally { try{proc.disconnect();src.disconnect();mudo.disconnect();}catch(e){} stream.getTracks().forEach(t=>t.stop()); ac.close(); }
+  let n=0; for(const p of pedacos) n+=p.length; const pcm=new Float32Array(n); let o=0; for(const p of pedacos){ pcm.set(p,o); o+=p.length; }
+  if(n<ac.sampleRate*0.5) throw new Error('Captei menos de meio segundo. Tente de novo.');
+  progresso('Analisando...');
+  return analisarPCM(pcm,ac.sampleRate);
+}
+async function analisarArquivo(r,arquivo,progresso){
+  progresso('Lendo o arquivo...');
+  const AC=window.AudioContext||window.webkitAudioContext, ac=new AC();
+  const buf=await ac.decodeAudioData(await arquivo.arrayBuffer());
+  const sr=buf.sampleRate, a=Math.floor(Math.max(0,r.ini)*sr), b=Math.min(buf.length,Math.ceil(r.fim*sr));
+  if(b-a<sr*0.3) throw new Error('O arquivo e mais curto que o trecho do riff ('+fmtT(buf.duration)+').');
+  const pcm=new Float32Array(b-a); for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c); for(let i=a;i<b;i++) pcm[i-a]+=d[i]/buf.numberOfChannels; }
+  ac.close(); progresso('Analisando...');
+  return analisarPCM(pcm,sr);
+}
+function textoDeteccao(d){
+  const notas=d.notas.map(n=>n.nome).join(' ');
+  const seq=d.seq.map(s=>nomeMidi(s.midi)+'('+s.dur.toFixed(1)+'s)').join(' ');
+  return {notas, seq, resumo:'Notas: '+notas+(d.acorde?'  ·  acorde provavel: '+d.acorde:'')+(seq?'\nSequencia: '+seq:'')};
 }
 
 /* ====================== estado / armazenamento (GitHub) ====================== */
@@ -544,10 +636,16 @@ function painelRiffs(it){
   ${vid?'':`<div class="form"><label>Cole o link do YouTube desta musica</label><div class="linha2"><input id="ytLink" type="url" inputmode="url" placeholder="https://youtu.be/..."><button class="pri" id="btYt">OK</button></div></div>`}
   ${vid?`<div id="riffs">${it.riffs.map((r,i)=>`<div class="riff" data-i="${i}">
       <div class="cab"><span class="nome">${h(r.nome||('Riff '+(i+1)))}</span><span class="tempo">${fmtT(r.ini)} → ${fmtT(r.fim)}</span>
-        <button class="mini pri tocar" data-i="${i}">▶ tocar</button><button class="mini editar" data-i="${i}">editar</button></div>
-      ${r.notas?`<div class="notas">${h(r.notas)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.notas),{lb:12,h:40})}</div>`:''}
+        <button class="mini pri tocar" data-i="${i}">▶ tocar</button><button class="mini editar" data-i="${i}">editar</button><button class="mini apagarRiff" data-i="${i}" title="Apagar riff">🗑</button></div>
+      <div class="detectar"><span class="dica" style="margin:0">Que notas tocam aqui?</span>
+        <button class="mini det" data-i="${i}" data-modo="mic">🎤 microfone</button>
+        <button class="mini det" data-i="${i}" data-modo="aba">🖥 audio da guia (PC)</button>
+        <button class="mini det" data-i="${i}" data-modo="arquivo">📁 arquivo de audio</button></div>
+      <div class="detResultado" id="det${i}">${r.det?`<div class="notas">${h(r.det.resumo)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.det.notas),{lb:12,h:40})}</div><div class="dica" style="margin:0">detectado em ${h(r.det.em||'')} · ${h(r.det.modo||'')}</div>`:''}</div>
+      ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas:</div><div class="notas" style="margin-top:2px">${h(r.notas)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.notas),{lb:12,h:40})}</div>`:''}
       ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
     </div>`).join('')}</div>
+    <input type="file" id="arqAudio" accept="audio/*,video/mp4,video/webm" class="oculto">
     <div class="form" id="formRiff">
       <label id="formTitulo">Novo riff</label>
       <input id="rNome" placeholder="Nome (ex.: Intro teclado, virada do refrao)">
@@ -582,6 +680,14 @@ function ligarRiffs(it){
   q('#rCancelar').onclick=limpar;
   q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ it.riffs.splice(editando,1); limpar(); salvar(); } };
   app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=r.notas||''; q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
+  app.querySelectorAll('.apagarRiff').forEach(b=>b.onclick=()=>{ const r=it.riffs[+b.dataset.i]; if(!confirm('Apagar o riff "'+(r.nome||('Riff '+(+b.dataset.i+1)))+'"?')) return; pararLoop(); it.riffs.splice(+b.dataset.i,1); if(editando===+b.dataset.i) limpar(); salvar(); toast('Riff apagado'); });
+  const mostrarDet=(i,r,d,modo)=>{ const tx=textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; salvar(); };
+  const rodarDet=async(i,modo,arquivo)=>{
+    const r=it.riffs[i], caixa=q('#det'+i); const prog=(t)=>{ caixa.innerHTML='<div class="aviso">'+h(t)+'</div>'; };
+    try{ const d=arquivo?await analisarArquivo(r,arquivo,prog):await captarTrecho(r,modo,prog); mostrarDet(i,r,d,modo==='mic'?'microfone':modo==='aba'?'audio da guia':'arquivo '+arquivo.name); }
+    catch(e){ caixa.innerHTML='<div class="aviso erro">'+h(e.message||String(e))+'</div>'; }
+  };
+  app.querySelectorAll('.det').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, modo=b.dataset.modo; if(modo==='arquivo'){ const inp=q('#arqAudio'); inp.onchange=()=>{ if(inp.files[0]) rodarDet(i,'arquivo',inp.files[0]); inp.value=''; }; inp.click(); return; } q('#video').classList.remove('oculto'); garantePlayer(it,()=>rodarDet(i,modo)); });
   app.querySelectorAll('.tocar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; const card=b.closest('.riff'); if(loop.on&&loop.ini===r.ini&&loop.fim===r.fim){pararLoop(); return;} q('#video').classList.remove('oculto'); garantePlayer(it,()=>tocarLoop(r,card));});
 }
 function tocarLoop(r,card){
