@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-klGxSa+afKOz/cZdxtnFRS59JXIPr2AFRbwncHge/O4=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Minhas Cifras</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-192.png">
+<style>
+:root{
+  --bg:#111; --bg2:#1c1c1c; --bg3:#262626; --linha:#333; --tx:#ececec; --tx2:#9a9a9a;
+  --acorde:#ffa53d; --acorde2:#ffc27a; --sec:#7fc8ff; --ok:#57d46b; --erro:#ff6b6b;
+  --mono:ui-monospace,"Roboto Mono","SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);-webkit-text-size-adjust:100%}
+body{padding-bottom:env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit;background:var(--bg3);border:1px solid var(--linha);border-radius:10px;padding:8px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{filter:brightness(1.3)}
+button.pri{background:var(--acorde);color:#111;border-color:var(--acorde);font-weight:600}
+button.mini{padding:6px 9px;font-size:13px;border-radius:8px}
+button.ligado{border-color:var(--acorde);color:var(--acorde)}
+button:disabled{opacity:.45}
+input,textarea{font:inherit;color:var(--tx);background:var(--bg2);border:1px solid var(--linha);border-radius:10px;padding:10px 12px;width:100%;font-size:16px}
+textarea{font-family:var(--mono);min-height:70px}
+a{color:var(--sec)}
+.oculto{display:none!important}
+
+/* ---------- topo ---------- */
+.topo{position:sticky;top:0;z-index:20;background:rgba(17,17,17,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--linha);padding:10px 12px;display:flex;align-items:center;gap:10px;padding-top:calc(10px + env(safe-area-inset-top))}
+.topo h1{font-size:17px;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topo .sub{font-size:12px;color:var(--tx2);font-weight:400;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icone{background:none;border:none;padding:6px;font-size:22px;line-height:1}
+
+/* ---------- biblioteca ---------- */
+.wrap{padding:14px 12px;max-width:760px;margin:0 auto}
+.add{display:flex;gap:8px;margin-bottom:6px}
+.add input{flex:1}
+.dica{font-size:12px;color:var(--tx2);margin:0 0 14px}
+.lista{list-style:none;margin:0;padding:0}
+.lista li{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;margin-bottom:8px;display:flex;align-items:center}
+.lista a.item{flex:1;padding:12px 14px;color:var(--tx);text-decoration:none;min-width:0}
+.lista .t{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lista .a{font-size:13px;color:var(--tx2);display:block}
+.lista .tag{font-family:var(--mono);color:var(--acorde);font-size:12px;margin-left:8px}
+.lista .apagar{background:none;border:none;color:var(--tx2);padding:12px;font-size:18px}
+.vazio{color:var(--tx2);text-align:center;padding:40px 10px;line-height:1.6}
+.aviso{background:#2a1f10;border:1px solid #6b4a1a;color:#ffd39a;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 12px}
+.aviso.erro{background:#2e1414;border-color:#7a2b2b;color:#ffb3b3}
+.rodape{color:var(--tx2);font-size:12px;text-align:center;margin-top:30px;line-height:1.6}
+
+/* ---------- viewer ---------- */
+.barra{position:sticky;z-index:19;background:var(--bg);border-bottom:1px solid var(--linha);display:flex;gap:6px;padding:8px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.barra::-webkit-scrollbar{display:none}
+.barra button{white-space:nowrap;flex:0 0 auto}
+.barra .tom{display:flex;align-items:center;gap:0;border:1px solid var(--linha);border-radius:10px;overflow:hidden;flex:0 0 auto}
+.barra .tom button{border:none;border-radius:0;padding:8px 10px}
+.barra .tom .val{font-family:var(--mono);color:var(--acorde);padding:0 8px;min-width:44px;text-align:center;font-weight:600}
+.video{background:#000;position:sticky;z-index:18}
+.video .quadro{position:relative;width:100%;padding-top:56.25%}
+.video iframe,.video #yt{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video.mini .quadro{padding-top:0;height:120px}
+.video.mini{display:flex;justify-content:flex-end}
+.video.mini .quadro{width:213px}
+
+.diagramas{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;border-bottom:1px solid var(--linha);background:var(--bg);scrollbar-width:none}
+.diagramas::-webkit-scrollbar{display:none}
+.diag{flex:0 0 auto;text-align:center;border-radius:8px;padding:4px 4px 2px;border:1px solid transparent}
+.diag.ativo{border-color:var(--acorde);background:#1a1508}
+.diag .nome{font-family:var(--mono);color:var(--acorde);font-weight:700;font-size:13px;margin-bottom:2px}
+.diag svg{display:block}
+
+.cifra{padding:12px 12px 120px;overflow-x:auto;font-family:var(--mono);white-space:pre;line-height:1.5;font-size:17px;max-width:760px;margin:0 auto}
+.cifra .ln{min-height:1.5em}
+.cifra .c{color:var(--acorde);font-weight:700;cursor:pointer;border-radius:4px}
+.cifra .c.ativo{background:#3a2a10;color:var(--acorde2)}
+.cifra .sec{color:var(--sec);font-weight:600}
+.cifra .tab{color:#b7b7b7}
+.cifra .ln.ac{line-height:1.35}
+
+/* ---------- riffs ---------- */
+.painel{background:var(--bg2);border-top:1px solid var(--linha);padding:12px;max-width:760px;margin:0 auto}
+.painel h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.painel h2 span{flex:1}
+.riff{border:1px solid var(--linha);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--bg)}
+.riff .cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.riff .nome{font-weight:600;flex:1;min-width:120px}
+.riff .tempo{font-family:var(--mono);color:var(--tx2);font-size:13px}
+.riff .notas{font-family:var(--mono);color:var(--acorde);white-space:pre-wrap;margin:8px 0 4px;font-size:15px;line-height:1.5}
+.riff .obs{color:var(--tx2);font-size:13px;white-space:pre-wrap}
+.riff.tocando{border-color:var(--acorde)}
+.form{display:grid;gap:8px;margin-top:10px}
+.form label{font-size:12px;color:var(--tx2)}
+.form .linha2{display:flex;gap:8px;align-items:center}
+.form .linha2 input{flex:1}
+.vel{display:flex;gap:4px}
+.pianinho{margin:6px 0}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2a2a;border:1px solid #444;border-radius:12px;padding:10px 16px;font-size:14px;z-index:50;max-width:92vw;box-shadow:0 6px 30px rgba(0,0,0,.6)}
+.toast.erro{border-color:var(--erro);color:#ffb3b3}
+
+/* rolagem automatica: botao flutuante */
+.flut{position:fixed;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;display:flex;flex-direction:column;gap:8px}
+.flut button{border-radius:50%;width:46px;height:46px;padding:0;font-size:18px;box-shadow:0 4px 18px rgba(0,0,0,.5);background:var(--bg3)}
+.flut button.ligado{background:var(--acorde);color:#111;border-color:var(--acorde)}
+.flut .vel{position:absolute;right:52px;bottom:0;display:none;gap:4px;background:var(--bg3);border:1px solid var(--linha);border-radius:12px;padding:4px}
+.flut .vel button{width:auto;height:auto;border-radius:8px;padding:8px 10px;box-shadow:none;font-size:14px}
+.flut.aberto .vel{display:flex}
+@media (min-width:700px){.video.mini .quadro{width:280px}.video.mini .quadro{height:158px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast oculto"></div>
+
+<script>
+/* ====================== teoria musical ====================== */
+const NOTAS_S=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTAS_B=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const IDX={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,'E#':5,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11,'B#':0};
+const TONS_BEMOL=new Set([5,10,3,8]); // F, Bb, Eb, Ab (maiores) - o resto sai com sustenido
+
+function parseAcorde(s){
+  const m=String(s).trim().match(/^([A-G][#b]?)(.*?)(?:\/([A-G][#b]?))?$/);
+  if(!m||IDX[m[1]]==null) return null;
+  return {raiz:m[1],resto:m[2]||'',baixo:m[3]||''};
+}
+function ehMenor(resto){
+  // "m", "m7", "min", "m7(b5)", "-7" ; NAO: "maj7", "7M"
+  return /^(m(?!aj)|min|-)/i.test(resto)||/^(°|º|dim|ø)/i.test(resto);
+}
+function nomeNota(i,bemol){i=((i%12)+12)%12;return (bemol?NOTAS_B:NOTAS_S)[i];}
+function transporAcorde(s,n,bemol){
+  const a=parseAcorde(s); if(!a||!n) return s;
+  let r=nomeNota(IDX[a.raiz]+n,bemol)+a.resto;
+  if(a.baixo) r+='/'+nomeNota(IDX[a.baixo]+n,bemol);
+  return r;
+}
+function simplificarAcorde(s){
+  const a=parseAcorde(s); if(!a) return s;
+  return a.raiz+(ehMenor(a.resto)?'m':'');
+}
+function tomTransposto(tom,n){
+  const a=parseAcorde(tom||''); if(!a) return '';
+  const i=IDX[a.raiz]+n; const menor=ehMenor(a.resto);
+  const rel=menor?i+3:i; // relativa maior decide sustenido/bemol
+  const bemol=TONS_BEMOL.has(((rel%12)+12)%12);
+  return {nome:nomeNota(i,bemol)+(menor?'m':''),bemol};
+}
+/* notas do acorde (intervalos em semitons a partir da raiz) para o desenho do piano */
+function intervalos(resto){
+  let r=resto.replace(/\s/g,'');
+  const menor=ehMenor(r); const dim=/^(°|º|dim)/i.test(r); const meio=/ø|m7\(b5\)|m7b5/i.test(r); const aum=/(aug|\+|5\+|#5)/.test(r)&&!/7\(#5\)|7#5/.test(r);
+  let set=new Set(menor||dim?[0,3,7]:[0,4,7]);
+  if(/^5$/.test(r)) set=new Set([0,7]); // power chord (E5): so tonica e quinta
+  if(dim||meio){set=new Set([0,3,6]); if(/7/.test(r)&&!meio) set.add(9); if(meio) set.add(10);}
+  if(aum) set=new Set([0,4,8]);
+  if(/sus4|(?<![\d(])4(?!\d)/.test(r)&&!menor){set.delete(4);set.add(5);}
+  if(/sus2/.test(r)){set.delete(4);set.delete(3);set.add(2);}
+  if(/(^|[^\d(])2(?!\d)|add9|\(9\)|\(add9\)/.test(r)&&!/^9/.test(r)) set.add(14);
+  if(/7M|maj7|Maj7/.test(r)) set.add(11);
+  else if(/7|9|11|13/.test(r)&&!dim) set.add(10);
+  if(/(^|m)9|7\(9\)|7\/9/.test(r)) set.add(14);
+  if(/11/.test(r)){set.add(14);set.add(17);}
+  if(/13/.test(r)){set.add(14);set.add(21);}
+  if(/(^|m)6|\(6\)/.test(r)&&!/13/.test(r)) set.add(9);
+  if(/b5|5-|\(b5\)/.test(r)&&!meio){set.delete(7);set.add(6);}
+  if(/7\(#5\)|7#5|7\(5\+\)/.test(r)){set.delete(7);set.add(8);}
+  if(/b9|9-/.test(r)){set.delete(14);set.add(13);}
+  if(/#9|9\+/.test(r)){set.delete(14);set.add(15);}
+  if(/#11|11\+/.test(r)){set.delete(17);set.add(18);}
+  if(/b13|13-/.test(r)){set.delete(21);set.add(20);}
+  return [...set].sort((a,b)=>a-b);
+}
+/* SVG de piano com 2 oitavas (C a B). marca = {semitom absoluto (0..23): 'raiz'|'baixo'|'nota'} */
+const BRANCAS=[0,2,4,5,7,9,11], PRETAS={1:0,3:1,6:3,8:4,10:5};
+function pianoSvg(marcas,opts){
+  const o=Object.assign({oitavas:2,lb:14,h:44},opts||{});
+  const lb=o.lb, lp=Math.round(lb*.62), h=o.h, hp=Math.round(h*.62), nb=7*o.oitavas, W=nb*lb, r=Math.max(3,Math.round(lb*.22));
+  let s=`<svg width="${W}" height="${h}" viewBox="0 0 ${W} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  for(let i=0;i<nb;i++) s+=`<rect x="${i*lb+.5}" y=".5" width="${lb-1}" height="${h-1}" rx="2" fill="#f4f4f4" stroke="#999"/>`;
+  for(let oc=0;oc<o.oitavas;oc++) for(const st in PRETAS){const x=(oc*7+PRETAS[st])*lb+lb-lp/2; s+=`<rect x="${x}" y="0" width="${lp}" height="${hp}" rx="1.5" fill="#1a1a1a"/>`;}
+  for(const k in marcas){
+    const n=+k, oc=Math.floor(n/12), st=n%12, tipo=marcas[k]; let cx,cy,preta=PRETAS[st]!=null;
+    if(preta){cx=(oc*7+PRETAS[st])*lb+lb; cy=hp-r-3;} else {cx=(oc*7+BRANCAS.indexOf(st))*lb+lb/2; cy=h-r-4;}
+    const cheio=tipo==='raiz'||tipo==='baixo';
+    s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${cheio?(preta?'#fff':'#111'):(preta?'#1a1a1a':'#f4f4f4')}" stroke="${preta?'#fff':'#111'}" stroke-width="1.6"/>`;
+  }
+  return s+'</svg>';
+}
+function marcasDoAcorde(nome){
+  const a=parseAcorde(nome); if(!a) return null;
+  const raiz=IDX[a.raiz], marcas={};
+  let base=raiz; // raiz na 1a oitava
+  if(a.baixo){const b=IDX[a.baixo]; marcas[b]='baixo'; base=raiz>b?raiz:raiz+12; if(base>=24) base-=12;}
+  else marcas[raiz]='raiz';
+  for(const iv of intervalos(a.resto)){let n=base+iv; while(n>=24) n-=12; if(marcas[n]==null) marcas[n]=(iv===0&&!a.baixo)?'raiz':'nota';}
+  return marcas;
+}
+function marcasDeNotas(txt){
+  const marcas={}; let ordem=0;
+  for(const t of String(txt).split(/[\s,|/-]+/)){const m=t.match(/^([A-G][#b]?)(\d)?$/); if(!m||IDX[m[1]]==null) continue; let n=IDX[m[1]]; if(m[2]!=null) n+=(Math.max(0,Math.min(1,+m[2]-3)))*12; else if(marcas[n]!=null) n+=12; marcas[n]=ordem===0?'raiz':'nota'; ordem++;}
+  return marcas;
+}
+
+/* ====================== estado / armazenamento (GitHub) ====================== */
+/* A biblioteca e o arquivo docs/dados/biblioteca.json do repositorio. Ler: pela API do
+   GitHub quando ha token (sempre fresco), senao pelo proprio site (CDN, pode atrasar
+   alguns minutos). Gravar: PUT na API de conteudo, com o sha do arquivo; se alguem (ou a
+   Action) gravou antes, o GitHub responde 409/422, o app rele, mescla e reenvia. Buscar
+   uma cifra nova: o navegador nao consegue ler o Cifra Club (CORS), entao o app dispara a
+   GitHub Action (repository_dispatch) e fica esperando o item aparecer no JSON. */
+const GH=(()=>{const h=location.hostname.match(/^([^.]+)\.github\.io$/i); const seg=location.pathname.split('/').filter(Boolean);
+  return {owner:h?h[1]:'Ferreira096', repo:(h&&seg[0])?seg[0]:'cifras', branch:'main', arquivo:'docs/dados/biblioteca.json'};})();
+const LS='cifras.lib', LSTOK='cifras.gh';
+let lib={itens:[],v:0}, sha='', apagados=new Set();
+let online=true;
+function lerLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||'null'); if(j&&Array.isArray(j.itens)) lib=j;}catch(e){}}
+function gravarLocal(){try{localStorage.setItem(LS,JSON.stringify(lib));}catch(e){}}
+
+/* ---- token do GitHub: nunca fica em texto puro no aparelho ----
+   Todos os sites *.github.io do mesmo usuario dividem a MESMA origem (localStorage
+   compartilhado). Por isso o token e guardado cifrado (AES-GCM) com uma chave derivada de
+   um PIN (PBKDF2, 310 mil voltas) e so existe aberto na memoria desta aba. O PIN e pedido
+   uma vez por abertura do app, na primeira gravacao. */
+let tokenMem='';
+function tok(){return tokenMem;}
+function temTokenGuardado(){return !!localStorage.getItem(LSTOK);}
+function esquecerToken(){localStorage.removeItem(LSTOK); tokenMem='';}
+const u8b64=(u)=>btoa(String.fromCharCode.apply(null,u)), b64u8=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function chaveDoPin(pin,salt){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function guardarToken(token,pin){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const k=await chaveDoPin(pin,salt);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(token)));
+  localStorage.setItem(LSTOK,JSON.stringify({s:u8b64(salt),i:u8b64(iv),c:u8b64(ct)})); tokenMem=token;
+}
+async function destravarToken(pin){
+  let j=null; try{ j=JSON.parse(localStorage.getItem(LSTOK)||'null'); }catch(e){}
+  if(!j||!j.c) return false;
+  try{ const k=await chaveDoPin(pin,b64u8(j.s)); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64u8(j.i)},k,b64u8(j.c)); tokenMem=new TextDecoder().decode(pt); return true; }
+  catch(e){ return false; }
+}
+async function pedirToken(){
+  if(!(crypto&&crypto.subtle)){ toast('Este navegador nao tem criptografia (abra pelo endereco https)',true); return false; }
+  const t=prompt('Token do GitHub para gravar (fine-grained, SO este repositorio, permissao "Contents: Read and write", com validade).\n\nCrie em github.com -> Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens.\n\nCole aqui:','');
+  if(!t||!t.trim()) return false;
+  if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(t.trim())){ toast('Isso nao parece um token do GitHub',true); return false; }
+  let pin='';
+  for(;;){ pin=prompt('Crie um PIN (minimo 6 caracteres) para proteger o token neste aparelho.\nEle sera pedido uma vez a cada abertura do app, na primeira gravacao:',''); if(pin===null) return false; if(pin.length>=6) break; alert('PIN muito curto: use pelo menos 6 caracteres.'); }
+  const de=prompt('Repita o PIN:',''); if(de!==pin){ toast('Os PINs nao conferem',true); return false; }
+  await guardarToken(t.trim(),pin); return true;
+}
+async function garanteToken(){
+  if(tokenMem) return true;
+  if(!temTokenGuardado()) return pedirToken();
+  for(let i=0;i<3;i++){ const pin=prompt(i?'PIN errado. Tente de novo ('+(3-i)+' restantes):':'PIN para destravar o token do GitHub neste aparelho:',''); if(pin===null) return false; if(await destravarToken(pin)) return true; }
+  toast('PIN errado 3 vezes. Use ⋮ > trocar o token se esqueceu.',true); return false;
+}
+const b64e=(s)=>btoa(unescape(encodeURIComponent(s)));
+const b64d=(s)=>decodeURIComponent(escape(atob(s.replace(/\n/g,''))));
+function api(p,o){o=o||{}; return fetch('https://api.github.com'+p,Object.assign({},o,{headers:Object.assign({Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:'Bearer '+tok()},o.headers||{})}));}
+const repoPath=()=>`/repos/${GH.owner}/${GH.repo}/contents/${GH.arquivo}`;
+async function lerServidorBruto(){
+  if(tok()){
+    const r=await api(repoPath()+'?ref='+GH.branch+'&t='+Date.now(),{cache:'no-store'});
+    if(r.status===401){toast('Token do GitHub invalido ou vencido',true); esquecerToken(); throw new Error('401');}
+    if(!r.ok) throw new Error('GitHub '+r.status);
+    const j=await r.json(); let txt='';
+    if(j.content) txt=b64d(j.content);
+    else { const rr=await api(repoPath()+'?ref='+GH.branch+'&t='+Date.now(),{headers:{Accept:'application/vnd.github.raw+json'},cache:'no-store'}); txt=await rr.text(); }
+    return {sha:j.sha,dados:JSON.parse(txt)};
+  }
+  const r=await fetch('dados/biblioteca.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('site '+r.status);
+  return {sha:'',dados:await r.json()};
+}
+async function carregarServidor(){
+  try{const s=await lerServidorBruto(); if(Array.isArray(s.dados.itens)){ sha=s.sha||sha; if((s.dados.v||0)>=(lib.v||0)||!lib.itens.length){lib=s.dados; gravarLocal();} } online=true;}
+  catch(e){online=false;}
+}
+function mesclar(servidor){
+  // este aparelho ganha nos itens que ele tem; o que so existe no servidor (ex.: cifra que a Action acabou de gravar) entra tambem
+  const meus=new Map(lib.itens.map(i=>[i.id,i]));
+  const lista=lib.itens.slice();
+  for(const it of (servidor.itens||[])) if(!meus.has(it.id)&&!apagados.has(it.id)) lista.push(it);
+  lib={itens:lista,v:Math.max(lib.v||0,servidor.v||0)};
+}
+let salvarTimer=0, salvarFila=Promise.resolve();
+function salvar(){
+  gravarLocal(); render();
+  clearTimeout(salvarTimer);
+  return new Promise((res)=>{ salvarTimer=setTimeout(()=>{ salvarFila=salvarFila.then(()=>enviar()).then(res,()=>res(false)); },1500); });
+}
+async function enviar(){
+  if(!(await garanteToken())){toast('Sem token: salvo so neste aparelho',true);return false;}
+  for(let tent=0;tent<4;tent++){
+    if(!sha){ try{const s=await lerServidorBruto(); sha=s.sha; mesclar(s.dados);}catch(e){ if(e.message==='401') return false; toast('Sem conexao: salvo so neste aparelho',true); return false; } }
+    lib.v=(lib.v||0)+1; lib.em=new Date().toISOString();
+    const corpo={message:'app: '+(lib.itens.length)+' cifra(s), v'+lib.v,content:b64e(JSON.stringify(lib)),branch:GH.branch}; if(sha) corpo.sha=sha;
+    const r=await api(repoPath(),{method:'PUT',body:JSON.stringify(corpo)}).catch(()=>null);
+    if(!r){toast('Sem conexao: salvo so neste aparelho',true);return false;}
+    if(r.status===401||r.status===403){toast('Token sem permissao de gravar (Contents: Read and write)',true); esquecerToken(); if(!(await pedirToken())) return false; continue;}
+    if(r.status===409||r.status===422){ sha=''; lib.v--; continue; }
+    if(!r.ok){toast('Erro ao salvar ('+r.status+')',true);return false;}
+    const j=await r.json(); sha=j.content&&j.content.sha||''; gravarLocal(); return true;
+  }
+  toast('Nao consegui gravar: o arquivo mudou varias vezes',true); return false;
+}
+/* pede a Action para buscar uma cifra e espera ela aparecer */
+async function buscarCifra(url,progresso){
+  if(!(await garanteToken())) throw new Error('Preciso do token do GitHub para pedir a busca.');
+  const m=String(url).trim().match(/^https?:\/\/(?:www\.|m\.)?cifraclub\.com\.br\/([^/?#\s]+)\/([^/?#\s]+)\/?/i);
+  if(!m||/\.html?$/i.test(m[2])) throw new Error('Cole um link de cifra do Cifra Club, ex.: https://www.cifraclub.com.br/artista/musica/');
+  const limpo=`https://www.cifraclub.com.br/${m[1].toLowerCase()}/${m[2].toLowerCase()}/`;
+  const id=`${m[1].toLowerCase()}__${m[2].toLowerCase()}`;
+  const inicio=Date.now();
+  const r=await api(`/repos/${GH.owner}/${GH.repo}/dispatches`,{method:'POST',body:JSON.stringify({event_type:'buscar',client_payload:{url:limpo}})});
+  if(r.status===401||r.status===403){esquecerToken(); throw new Error('Token invalido ou sem permissao (precisa de Contents: Read and write).');}
+  if(r.status===404) throw new Error('Repositorio '+GH.owner+'/'+GH.repo+' nao encontrado pelo token.');
+  if(!r.ok&&r.status!==204) throw new Error('GitHub respondeu '+r.status);
+  progresso('Pedido enviado. A GitHub Action esta buscando no Cifra Club (normalmente 30 s a 2 min)...');
+  const vAntes=lib.v||0;
+  for(let i=0;i<50;i++){
+    await new Promise(r=>setTimeout(r,i<3?4000:6000));
+    let s; try{ s=await lerServidorBruto(); }catch(e){ continue; }
+    const it=(s.dados.itens||[]).find(x=>x.id===id);
+    if(it&&(!lib.itens.find(x=>x.id===id)||(s.dados.v||0)>vAntes)){ sha=s.sha; lib=s.dados; gravarLocal(); return id; }
+    // erro gravado pela Action depois do pedido?
+    try{ const e=await api(`/repos/${GH.owner}/${GH.repo}/contents/docs/dados/ultimo-erro.json?ref=${GH.branch}&t=${Date.now()}`,{cache:'no-store'}); if(e.ok){ const j=await e.json(); const d=JSON.parse(b64d(j.content||'')||'{}'); if(d.erro&&d.url===limpo&&Date.parse(d.em)>inicio-60000) throw new Error(d.erro); } }catch(err){ if(err.message&&!/JSON|token|GitHub/.test(err.message)&&err.message!=='401') throw err; }
+    progresso('Ainda buscando... ('+Math.round((Date.now()-inicio)/1000)+' s). Voce pode acompanhar na aba Actions do repositorio.');
+  }
+  throw new Error('A busca nao terminou em 5 min. Veja a aba Actions do repositorio.');
+}
+function toast(msg,erro){const t=document.getElementById('toast'); t.textContent=msg; t.className='toast'+(erro?' erro':''); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.add('oculto'),erro?4000:2200);}
+const h=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtT=(s)=>{s=Math.max(0,+s||0); const m=Math.floor(s/60), r=s-m*60; return m+':'+(r<10?'0':'')+r.toFixed(1);};
+const parseT=(t)=>{t=String(t||'').trim(); if(!t) return 0; const p=t.split(':'); if(p.length===1) return +p[0].replace(',','.')||0; return (+p[0]||0)*60+(+p[1].replace(',','.')||0);};
+const ytId=(u)=>{const m=String(u||'').match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/)||String(u||'').match(/^([\w-]{11})$/); return m?m[1]:'';};
+
+/* ====================== rotas ====================== */
+function rota(){const m=location.hash.match(/^#\/c\/([^/]+)/); if(!m) return {tela:'lista'}; try{ return {tela:'cifra',id:decodeURIComponent(m[1])}; }catch(e){ return {tela:'lista'}; }}
+window.addEventListener('hashchange',()=>{pararRolagem(); pararLoop(); render();});
+
+function render(){
+  const r=rota();
+  if(r.tela==='cifra'){const it=lib.itens.find(i=>i.id===r.id); if(it) return renderCifra(it); location.hash='#/'; return;}
+  renderLista();
+}
+
+/* ====================== biblioteca ====================== */
+function renderLista(){
+  const app=document.getElementById('app');
+  app.innerHTML=`
+  <div class="topo"><h1>Minhas Cifras<span class="sub">${lib.itens.length} cifra(s)${online?'':' · sem conexao (copia local)'}</span></h1>
+    <button class="icone" id="btToken" title="Token do GitHub">🔑</button><button class="icone" id="btRecarregar" title="Recarregar">↻</button></div>
+  <div class="wrap">
+    <div class="add"><input id="link" type="url" inputmode="url" placeholder="Cole o link do Cifra Club" autocomplete="off"><button class="pri" id="btAdd">Adicionar</button></div>
+    <p class="dica">Ex.: https://www.cifraclub.com.br/artista/musica/ — uma GitHub Action busca a cifra (1 a 2 min), guarda no repositorio e voce simplifica, transpoe e marca riffs do YouTube.</p>
+    <div id="msg"></div>
+    ${lib.itens.length?`<ul class="lista">${lib.itens.map(i=>`<li><a class="item" href="#/c/${encodeURIComponent(i.id)}"><span class="t">${h(i.titulo)}</span><span class="a">${h(i.artista)}${i.riffs&&i.riffs.length?` · ${i.riffs.length} riff(s)`:''}</span></a><span class="tag">${h(tomAtual(i))}</span><button class="apagar" data-id="${h(i.id)}" title="Apagar">✕</button></li>`).join('')}</ul>`
+    :`<div class="vazio">Nenhuma cifra ainda.<br>Cole um link do Cifra Club acima.</div>`}
+    <p class="rodape">Instale como app: no Chrome do celular, menu ⋮ → "Adicionar a tela inicial".</p>
+  </div>`;
+  const link=app.querySelector('#link');
+  const add=async()=>{
+    const u=link.value.trim(); if(!u) return;
+    const msg=app.querySelector('#msg'); const prog=(x)=>{msg.innerHTML='<div class="aviso">'+h(x)+'</div>';};
+    prog('Pedindo a busca...'); app.querySelector('#btAdd').disabled=true;
+    try{ const id=await buscarCifra(u,prog); toast('Cifra guardada'); location.hash='#/c/'+encodeURIComponent(id); render(); }
+    catch(e){ msg.innerHTML='<div class="aviso erro">'+h(e.message)+'</div>'; app.querySelector('#btAdd').disabled=false; }
+  };
+  app.querySelector('#btAdd').onclick=add; link.addEventListener('keydown',e=>{if(e.key==='Enter') add();});
+  app.querySelectorAll('.apagar').forEach(b=>b.onclick=async()=>{const it=lib.itens.find(i=>i.id===b.dataset.id); if(!confirm('Apagar "'+it.titulo+'"?')) return; apagados.add(it.id); lib.itens=lib.itens.filter(i=>i!==it); await salvar();});
+  app.querySelector('#btToken').onclick=()=>{ if(temTokenGuardado()&&!confirm('Ja existe um token guardado neste aparelho. Trocar por outro?')) return; esquecerToken(); pedirToken().then(ok=>{ if(ok){ toast('Token guardado, cifrado com o PIN'); carregarServidor().then(render);} }); };
+  app.querySelector('#btRecarregar').onclick=async()=>{await carregarServidor(); render(); toast(online?'Atualizado':'Sem conexao',!online);};
+}
+function tomAtual(it){const t=tomTransposto(it.tom,(it.aj&&it.aj.n)||0); return t?t.nome:(it.tom||'');}
+
+/* ====================== viewer ====================== */
+let acordeAtivo='', rolagem={on:false,vel:1,raf:0,acc:0,t:0}, loop={on:false,ini:0,fim:0,timer:0}, player=null, playerVideo='';
+
+function acordesVisiveis(it){
+  const aj=it.aj||{}; const t=tomTransposto(it.tom,aj.n||0); const bemol=t?t.bemol:false;
+  const mapa=(c)=>{let x=aj.simples?simplificarAcorde(c):c; return transporAcorde(x,aj.n||0,bemol);};
+  return {mapa,bemol};
+}
+function renderCifra(it){
+  it.aj=Object.assign({n:0,simples:false,fonte:17},it.aj||{}); it.aj.n=(+it.aj.n||0); it.aj.fonte=Math.min(28,Math.max(11,+it.aj.fonte||17)); it.aj.simples=!!it.aj.simples;
+  it.riffs=it.riffs||[];
+  const app=document.getElementById('app'); const {mapa}=acordesVisiveis(it);
+  const distintos=[]; for(const l of it.linhas) for(const s of l) if(s&&s.c){const v=mapa(s.c); if(!distintos.includes(v)) distintos.push(v);}
+  const tom=tomAtual(it);
+  const linhasHtml=it.linhas.map(l=>{
+    if(!l.length) return '<div class="ln"> </div>';
+    const temAc=l.some(s=>s&&s.c);
+    const txt=l.map(s=>typeof s==='string'?h(s):s.c).join('');
+    const tab=/^[EADGBe]\|[-0-9hp~/\\|]/.test(txt)||/^\s*[EADGBe]\s*\|/.test(txt);
+    let inner=l.map(s=>{ if(typeof s==='string'){ if(/^\s*\[[^\]]+\]/.test(s)) return h(s).replace(/(\[[^\]]+\])/g,'<span class="sec">$1</span>'); return h(s);} const v=mapa(s.c); return `<span class="c${v===acordeAtivo?' ativo':''}" data-c="${h(v)}">${h(v)}</span>`;}).join('');
+    return `<div class="ln${temAc?' ac':''}${tab?' tab':''}">${inner}</div>`;
+  }).join('');
+  const vid=it.video||'';
+  app.innerHTML=`
+  <div class="topo"><button class="icone" id="btVoltar">←</button><h1>${h(it.titulo)}<span class="sub">${h(it.artista)}${it.capo?' · capo '+h(it.capo):''}</span></h1>
+    <button class="icone" id="btMenu" title="Mais">⋮</button></div>
+  <div class="barra" id="barra">
+    <div class="tom"><button id="tomMenos">−</button><span class="val" id="tomVal">${h(tom||'?')}</span><button id="tomMais">+</button></div>
+    <button id="btSimples" class="${it.aj.simples?'ligado':''}">Simplificar</button>
+    <button id="btVideo" class="${vid?'':''}">▶ Video / Riffs</button>
+    <button id="fMenos" class="mini">A−</button><button id="fMais" class="mini">A+</button>
+    <button id="btOrig" class="mini" ${it.aj.n?'':'disabled'}>Tom original</button>
+  </div>
+  <div class="video oculto" id="video"><div class="quadro"><div id="yt"></div></div></div>
+  <div class="diagramas" id="diagramas">${distintos.map(c=>`<div class="diag${c===acordeAtivo?' ativo':''}" data-c="${h(c)}"><div class="nome">${h(c)}</div>${pianoSvg(marcasDoAcorde(c)||{},{lb:11,h:36})}</div>`).join('')}</div>
+  <div class="cifra" id="cifra" style="font-size:${it.aj.fonte}px">${linhasHtml}</div>
+  <div class="painel" id="painel">${painelRiffs(it)}</div>
+  <div class="flut" id="flut"><div class="vel">${[1,2,3,4].map(v=>`<button data-v="${v}" class="${rolagem.vel===v?'ligado':''}">${v}x</button>`).join('')}</div><button id="btRolar" class="${rolagem.on?'ligado':''}" title="Rolagem automatica">⇣</button></div>`;
+
+  app.querySelector('#btVoltar').onclick=()=>{location.hash='#/';};
+  app.querySelector('#tomMenos').onclick=()=>{it.aj.n=((it.aj.n-1)+12)%12; if(it.aj.n>6) it.aj.n-=12; salvar();};
+  app.querySelector('#tomMais').onclick=()=>{it.aj.n=it.aj.n+1; if(it.aj.n>6) it.aj.n-=12; salvar();};
+  app.querySelector('#btOrig').onclick=()=>{it.aj.n=0; salvar();};
+  app.querySelector('#btSimples').onclick=()=>{it.aj.simples=!it.aj.simples; salvar();};
+  app.querySelector('#fMenos').onclick=()=>{it.aj.fonte=Math.max(11,it.aj.fonte-1); salvar();};
+  app.querySelector('#fMais').onclick=()=>{it.aj.fonte=Math.min(28,it.aj.fonte+1); salvar();};
+  app.querySelector('#btVideo').onclick=()=>{const v=app.querySelector('#video'); v.classList.toggle('oculto'); if(!v.classList.contains('oculto')){ garantePlayer(it); document.getElementById('painel').scrollIntoView({behavior:'smooth',block:'start'}); }};
+  app.querySelector('#btMenu').onclick=()=>menuCifra(it);
+  app.querySelectorAll('.cifra .c, .diag').forEach(el=>el.onclick=()=>{acordeAtivo=acordeAtivo===el.dataset.c?'':el.dataset.c; app.querySelectorAll('.cifra .c').forEach(x=>x.classList.toggle('ativo',x.dataset.c===acordeAtivo)); app.querySelectorAll('.diag').forEach(x=>{x.classList.toggle('ativo',x.dataset.c===acordeAtivo); if(x.dataset.c===acordeAtivo) x.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});});});
+  // rolagem automatica
+  const flut=app.querySelector('#flut');
+  app.querySelector('#btRolar').onclick=()=>{ if(rolagem.on){pararRolagem(); flut.classList.remove('aberto');} else {rolagem.on=true; flut.classList.add('aberto'); app.querySelector('#btRolar').classList.add('ligado'); rolagem.t=performance.now(); rolagem.acc=0; passoRolagem();} };
+  flut.querySelectorAll('.vel button').forEach(b=>b.onclick=()=>{rolagem.vel=+b.dataset.v; flut.querySelectorAll('.vel button').forEach(x=>x.classList.toggle('ligado',x===b));});
+  ligarRiffs(it);
+  // posiciona barras fixas abaixo do topo
+  const topoH=app.querySelector('.topo').offsetHeight; app.querySelector('#barra').style.top=topoH+'px'; app.querySelector('#video').style.top=(topoH+app.querySelector('#barra').offsetHeight)+'px';
+  if(playerVideo&&vid&&playerVideo===vid&&player){app.querySelector('#video').classList.remove('oculto'); garantePlayer(it);}
+}
+function passoRolagem(){ if(!rolagem.on) return; const agora=performance.now(); const dt=(agora-rolagem.t)/1000; rolagem.t=agora; rolagem.acc+=dt*rolagem.vel*18; const px=Math.floor(rolagem.acc); if(px>0){window.scrollBy(0,px); rolagem.acc-=px;} if(window.innerHeight+window.scrollY>=document.body.scrollHeight-2) return pararRolagem(); rolagem.raf=requestAnimationFrame(passoRolagem); }
+function pararRolagem(){rolagem.on=false; cancelAnimationFrame(rolagem.raf); const b=document.getElementById('btRolar'); if(b) b.classList.remove('ligado'); const f=document.getElementById('flut'); if(f) f.classList.remove('aberto');}
+function menuCifra(it){
+  const op=prompt('Digite:\n1 = atualizar a cifra do Cifra Club\n2 = abrir no Cifra Club\n3 = trocar o token do GitHub\n4 = apagar esta cifra','');
+  if(op==='1'){ toast('Pedi a atualizacao a GitHub Action; leva 1 a 2 min'); buscarCifra(it.url,()=>{}).then(()=>{toast('Cifra atualizada'); render();}).catch(e=>toast(e.message,true)); }
+  else if(op==='2') window.open(it.url,'_blank');
+  else if(op==='3'){ esquecerToken(); pedirToken(); }
+  else if(op==='4'){ if(confirm('Apagar "'+it.titulo+'"?')){ apagados.add(it.id); lib.itens=lib.itens.filter(i=>i!==it); salvar().then(()=>{location.hash='#/';}); } }
+}
+
+/* ====================== YouTube / riffs ====================== */
+function painelRiffs(it){
+  const vid=it.video||'';
+  return `<h2><span>Riffs (YouTube)</span>${vid?`<button class="mini" id="btTrocarVideo">trocar video</button>`:''}</h2>
+  ${vid?'':`<div class="form"><label>Cole o link do YouTube desta musica</label><div class="linha2"><input id="ytLink" type="url" inputmode="url" placeholder="https://youtu.be/..."><button class="pri" id="btYt">OK</button></div></div>`}
+  ${vid?`<div id="riffs">${it.riffs.map((r,i)=>`<div class="riff" data-i="${i}">
+      <div class="cab"><span class="nome">${h(r.nome||('Riff '+(i+1)))}</span><span class="tempo">${fmtT(r.ini)} → ${fmtT(r.fim)}</span>
+        <button class="mini pri tocar" data-i="${i}">▶ tocar</button><button class="mini editar" data-i="${i}">editar</button></div>
+      ${r.notas?`<div class="notas">${h(r.notas)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.notas),{lb:12,h:40})}</div>`:''}
+      ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
+    </div>`).join('')}</div>
+    <div class="form" id="formRiff">
+      <label id="formTitulo">Novo riff</label>
+      <input id="rNome" placeholder="Nome (ex.: Intro teclado, virada do refrao)">
+      <div class="linha2"><label style="width:42px">Inicio</label><input id="rIni" placeholder="0:00.0" inputmode="decimal"><button class="mini" id="rIniAgora">agora</button></div>
+      <div class="linha2"><label style="width:42px">Fim</label><input id="rFim" placeholder="0:00.0" inputmode="decimal"><button class="mini" id="rFimAgora">agora</button></div>
+      <label>Notas (ex.: E G# B  F# A C#  — vira desenho no piano; use E4/G#5 para a oitava)</label>
+      <textarea id="rNotas" placeholder="E G# B | F# ..."></textarea>
+      <input id="rObs" placeholder="Observacao (dedilhado, mao esquerda, etc.)">
+      <div class="linha2"><span style="font-size:12px;color:var(--tx2)">Velocidade</span><div class="vel">${[0.5,0.75,1].map(v=>`<button class="mini velb ${v===1?'ligado':''}" data-v="${v}">${v}x</button>`).join('')}</div>
+        <span style="flex:1"></span><button id="rCancelar" class="mini oculto">cancelar</button><button id="rApagar" class="mini oculto">apagar</button><button class="pri" id="rSalvar">Salvar riff</button></div>
+      <p class="dica" style="margin:0">Dica: de o play, deixe chegar no riff, toque em "agora" no inicio e no fim. "▶ tocar" repete o trecho em loop na velocidade escolhida ate voce parar.</p>
+    </div>`:''}`;
+}
+let editando=-1, velocidade=1;
+function ligarRiffs(it){
+  const app=document.getElementById('app');
+  const q=(s)=>app.querySelector(s);
+  if(q('#btYt')) q('#btYt').onclick=()=>{const id=ytId(q('#ytLink').value); if(!id) return toast('Link do YouTube invalido',true); it.video=id; playerVideo=''; salvar().then(()=>{q('#video').classList.remove('oculto'); garantePlayer(it);});};
+  if(q('#btTrocarVideo')) q('#btTrocarVideo').onclick=()=>{const u=prompt('Novo link do YouTube:',''); const id=ytId(u); if(!id) return; it.video=id; playerVideo=''; if(player){try{player.destroy();}catch(e){} player=null;} salvar().then(()=>{q('#video').classList.remove('oculto'); garantePlayer(it);});};
+  if(!it.video) return;
+  const tempoAtual=()=>{ if(!player||!player.getCurrentTime) {toast('Abra o video primeiro (▶ Video / Riffs)',true); return null;} return player.getCurrentTime(); };
+  q('#rIniAgora').onclick=()=>{const t=tempoAtual(); if(t!=null) q('#rIni').value=fmtT(t);};
+  q('#rFimAgora').onclick=()=>{const t=tempoAtual(); if(t!=null) q('#rFim').value=fmtT(t);};
+  app.querySelectorAll('.velb').forEach(b=>b.onclick=()=>{velocidade=+b.dataset.v; app.querySelectorAll('.velb').forEach(x=>x.classList.toggle('ligado',x===b)); if(player&&player.setPlaybackRate) player.setPlaybackRate(velocidade);});
+  const limpar=()=>{editando=-1; q('#formTitulo').textContent='Novo riff'; ['#rNome','#rIni','#rFim','#rNotas','#rObs'].forEach(s=>q(s).value=''); q('#rCancelar').classList.add('oculto'); q('#rApagar').classList.add('oculto'); q('#rSalvar').textContent='Salvar riff';};
+  q('#rSalvar').onclick=()=>{
+    const r={nome:q('#rNome').value.trim(),ini:parseT(q('#rIni').value),fim:parseT(q('#rFim').value),notas:q('#rNotas').value.trim(),obs:q('#rObs').value.trim()};
+    if(r.fim<=r.ini) r.fim=r.ini+8;
+    if(editando>=0) it.riffs[editando]=r; else it.riffs.push(r);
+    it.riffs.sort((a,b)=>a.ini-b.ini); limpar(); salvar(); toast('Riff salvo');
+  };
+  q('#rCancelar').onclick=limpar;
+  q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ it.riffs.splice(editando,1); limpar(); salvar(); } };
+  app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=r.notas||''; q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
+  app.querySelectorAll('.tocar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; const card=b.closest('.riff'); if(loop.on&&loop.ini===r.ini&&loop.fim===r.fim){pararLoop(); return;} q('#video').classList.remove('oculto'); garantePlayer(it,()=>tocarLoop(r,card));});
+}
+function tocarLoop(r,card){
+  pararLoop(); loop.on=true; loop.ini=r.ini; loop.fim=r.fim;
+  document.querySelectorAll('.riff').forEach(x=>x.classList.toggle('tocando',x===card));
+  player.setPlaybackRate(velocidade); player.seekTo(r.ini,true); player.playVideo();
+  loop.timer=setInterval(()=>{ if(!player||!player.getCurrentTime) return; const t=player.getCurrentTime(); if(t>=r.fim-0.05||t<r.ini-1) player.seekTo(r.ini,true); },150);
+  const b=card&&card.querySelector('.tocar'); if(b) b.textContent='■ parar';
+}
+function pararLoop(){ loop.on=false; clearInterval(loop.timer); document.querySelectorAll('.riff').forEach(x=>{x.classList.remove('tocando'); const b=x.querySelector('.tocar'); if(b) b.textContent='▶ tocar';}); }
+let ytPronto=false, filaYt=[];
+window.onYouTubeIframeAPIReady=()=>{ytPronto=true; filaYt.splice(0).forEach(f=>f());};
+function garantePlayer(it,depois){
+  if(!it.video) return;
+  const monta=()=>{
+    if(player&&playerVideo===it.video&&document.getElementById('yt')&&document.getElementById('yt').tagName==='IFRAME'){ if(depois) depois(); return; }
+    if(player){try{player.destroy();}catch(e){} player=null;}
+    playerVideo=it.video;
+    player=new YT.Player('yt',{videoId:it.video,host:'https://www.youtube-nocookie.com',playerVars:{playsinline:1,rel:0,modestbranding:1,origin:location.origin},events:{onReady:()=>{ if(depois) depois(); }}});
+  };
+  if(ytPronto) monta(); else { filaYt.push(monta); if(!document.getElementById('ytapi')){const s=document.createElement('script'); s.id='ytapi'; s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s);} }
+}
+
+/* ====================== inicio ====================== */
+lerLocal(); render();
+carregarServidor().then(render);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+name: Buscar cifra no Cifra Club
+
+# Disparado pelo app (repository_dispatch) ou na mao, na aba Actions (workflow_dispatch).
+on:
+  repository_dispatch:
+    types: [buscar]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Link da cifra no Cifra Club"
+        required: true
+
+permissions:
+  contents: write
+
+# uma busca por vez, para dois commits nao brigarem pelo mesmo JSON
+concurrency:
+  group: biblioteca
+  cancel-in-progress: false
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Buscar e gravar
+        env:
+          CIFRA_URL: ${{ github.event.client_payload.url || github.event.inputs.url }}
+        run: node scripts/buscar.mjs
+      - name: Commit
+        run: |
+          git config user.name "cifras-bot"
+          git config user.email "cifras-bot@users.noreply.github.com"
+          git add docs/dados
+          git commit -m "cifra: ${CIFRA_URL}" || { echo "nada a gravar"; exit 0; }
+          for i in 1 2 3 4; do
+            git push && exit 0
+            git pull --rebase -X theirs || true
+          done
+          exit 1
+        env:
+          CIFRA_URL: ${{ github.event.client_payload.url || github.event.inputs.url }}
