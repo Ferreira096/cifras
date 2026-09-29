@@ -25,12 +25,13 @@ if (!(fim > ini && fim - ini <= 120)) falha('trecho invalido (maximo 120 s)');
 
 const url = 'https://www.youtube.com/watch?v=' + video;
 const a = Math.max(0, ini - 1), b = fim + 1; // baixa com 1 s de folga; o corte exato e no ffmpeg
-const clientes = ['android', 'ios', 'web_embedded', 'tv', 'web'];
+// com o provedor de PO Token, os clientes web sao os que costumam passar; os outros ficam de reserva
+const clientes = ['mweb', 'web', 'web_embedded', 'tv', 'android', 'ios'];
 let ok = false, ultimoErro = '';
 for (const c of clientes) {
   try { fs.rmSync('trecho.wav', { force: true }); } catch (e) {}
-  const r = spawnSync('yt-dlp', ['--no-playlist', '--no-warnings', '-f', 'ba/b', '--download-sections', `*${a}-${b}`, '--force-keyframes-at-cuts', '-x', '--audio-format', 'wav', '-o', 'trecho.%(ext)s', '--extractor-args', `youtube:player_client=${c}`, url], { encoding: 'utf8', timeout: 240000 });
-  const erros = (r.stderr || '').split('\n').filter((l) => /ERROR/.test(l));
+  const r = spawnSync('yt-dlp', ['--no-playlist', '-f', 'ba/b', '--download-sections', `*${a}-${b}`, '--force-keyframes-at-cuts', '-x', '--audio-format', 'wav', '-o', 'trecho.%(ext)s', '--extractor-args', `youtube:player_client=${c}`, url], { encoding: 'utf8', timeout: 240000 });
+  const erros = (r.stderr || '').split('\n').filter((l) => /ERROR|WARNING.*(pot|PO Token|token)/i.test(l));
   console.log(`yt-dlp [${c}]: status ${r.status}` + (erros.length ? ' | ' + erros.join(' | ').slice(0, 300) : ''));
   if (r.status === 0 && fs.existsSync('trecho.wav')) { ok = true; break; }
   ultimoErro = erros.pop() || ('yt-dlp saiu com ' + r.status);

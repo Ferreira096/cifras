@@ -45,9 +45,15 @@ jobs:
           FIM: ${{ github.event.client_payload.fim }}
           ID: ${{ github.event.client_payload.id }}
         run: |
-          python3 -m pip install -q -U yt-dlp
+          # yt-dlp + plugin de PO Token; o provedor roda em Docker na propria maquina da Action
+          # (o YouTube exige esse token de servidores de datacenter; sem ele: "not a bot").
+          python3 -m pip install -q -U yt-dlp bgutil-ytdlp-pot-provider
+          docker run -d --name pot -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider >/dev/null
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4416/ping >/dev/null && break; sleep 1; done
+          curl -s http://127.0.0.1:4416/ping || echo "(provedor de PO Token nao respondeu)"
           yt-dlp --version
           node scripts/notas.mjs
+          docker rm -f pot >/dev/null 2>&1 || true
 
       - name: Gravar na biblioteca
         env:
