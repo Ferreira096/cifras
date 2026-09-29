@@ -1,24 +1,23 @@
 /*
- * Roda na GitHub Action (ver .github/workflows/buscar-cifra.yml).
- * Le CIFRA_URL, busca a pagina no Cifra Club, e grava/atualiza a cifra em
- * docs/dados/biblioteca.json. Se falhar, grava o motivo em docs/dados/ultimo-erro.json
- * para o app mostrar no celular.
+ * Roda na GitHub Action (evento "buscar"). Le CIFRA_URL, busca a pagina no Cifra Club e
+ * escreve a cifra estruturada em $RESULTADO; o scripts/aplicar.mjs grava na biblioteca.
  *
- * O Cifra Club (Akamai) barra alguns clientes. Primeiro tenta o fetch do Node; se vier
- * 403, cai para um Chrome de verdade (Playwright), que e o que o site espera.
+ * O Cifra Club (Akamai) barra os servidores do GitHub. Primeiro tenta o fetch do Node; se
+ * vier 403, cai para um Chrome de verdade (Playwright). Em 29/09/2026 os dois foram
+ * barrados por IP; o caminho que funciona e o favorito no navegador do usuario. Este
+ * script fica como tentativa: se um dia passar, otimo.
  */
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
-import { normalizaUrl, idDaUrl, parsePagina } from './cifraclub.mjs';
+import { normalizaUrl, parsePagina } from './cifraclub.mjs';
 
-const ARQ = 'docs/dados/biblioteca.json';
-const ERRO = 'docs/dados/ultimo-erro.json';
+const SAIDA = process.env.RESULTADO || 'resultado.json';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 function falha(url, msg) {
   console.error('[ERRO]', msg);
-  fs.writeFileSync(ERRO, JSON.stringify({ url, erro: msg, em: new Date().toISOString() }, null, 1));
-  process.exit(0); // o commit do erro precisa acontecer; o workflow segue
+  fs.writeFileSync(SAIDA, JSON.stringify({ tipo: 'erro', chave: 'cifra:' + url, url, erro: msg, em: new Date().toISOString() }));
+  process.exit(0);
 }
 
 async function baixarComFetch(url) {
@@ -47,30 +46,14 @@ try {
   res = await baixarComFetch(url);
   console.log('fetch:', res.status, res.html.length, 'bytes');
   if (res.status === 404) falha(url, 'o Cifra Club respondeu 404: esse link nao existe');
-  // 403/429 = barrado pela Akamai; 200 sem <pre> = pagina de desafio. Nos dois casos, Chrome.
   if (res.status === 403 || res.status === 429 || (res.status === 200 && !/<pre\b/i.test(res.html))) res = await baixarComChrome(url);
 } catch (e) { falha(url, 'nao consegui baixar: ' + e.message); }
-if (res.status >= 400) falha(url, 'o Cifra Club respondeu ' + res.status);
+if (res.status === 404) falha(url, 'o Cifra Club respondeu 404: esse link nao existe');
+if (res.status >= 400) falha(url, 'o Cifra Club respondeu ' + res.status + ' (bloqueia os servidores do GitHub; use o favorito no navegador)');
 
 let cifra;
 try { cifra = parsePagina(res.html, url); } catch (e) { falha(url, e.message); }
+cifra.id = url.replace(/^https?:\/\/(www\.)?cifraclub\.com\.br\//, '').replace(/\/$/, '').replace(/\//g, '__');
 console.log('lida:', cifra.titulo, '|', cifra.artista, '| tom', cifra.tom, '|', cifra.linhas.length, 'linhas');
-
-const lib = JSON.parse(fs.readFileSync(ARQ, 'utf8'));
-lib.itens = lib.itens || [];
-const id = idDaUrl(url);
-const ja = lib.itens.find((i) => i.id === id);
-const agora = new Date().toISOString();
-if (ja) {
-  Object.assign(ja, { titulo: cifra.titulo, artista: cifra.artista, tom: cifra.tom, capo: cifra.capo, linhas: cifra.linhas, url, em: agora });
-  if (!ja.video && cifra.video) ja.video = cifra.video;
-  console.log('atualizada');
-} else {
-  lib.itens.unshift({ id, url, titulo: cifra.titulo, artista: cifra.artista, tom: cifra.tom, capo: cifra.capo, video: cifra.video || '', linhas: cifra.linhas, riffs: [], aj: { n: 0, simples: false, fonte: 17 }, em: agora });
-  console.log('adicionada');
-}
-lib.v = (lib.v || 0) + 1;
-lib.em = agora;
-fs.writeFileSync(ARQ, JSON.stringify(lib));
-fs.writeFileSync(ERRO, '{}');
-console.log('ok:', id);
+fs.writeFileSync(SAIDA, JSON.stringify({ tipo: 'cifra', cifra }));
+console.log('ok:', cifra.id);

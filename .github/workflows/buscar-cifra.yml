@@ -1,9 +1,9 @@
-name: Buscar cifra no Cifra Club
+name: Buscar cifra / notas do YouTube
 
-# Disparado pelo app (repository_dispatch) ou na mao, na aba Actions (workflow_dispatch).
+# Disparado pelo app (repository_dispatch: "buscar" ou "notas") ou na mao (workflow_dispatch).
 on:
   repository_dispatch:
-    types: [buscar]
+    types: [buscar, notas]
   workflow_dispatch:
     inputs:
       url:
@@ -13,34 +13,55 @@ on:
 permissions:
   contents: write
 
-# uma busca por vez, para dois commits nao brigarem pelo mesmo JSON
+# uma execucao por vez: dois commits nao brigam pelo mesmo JSON
 concurrency:
   group: biblioteca
   cancel-in-progress: false
 
+env:
+  RESULTADO: ${{ runner.temp }}/resultado.json
+
 jobs:
-  buscar:
+  rodar:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - name: Buscar e gravar
+
+      - name: Buscar cifra no Cifra Club
+        if: github.event.action == 'buscar' || github.event_name == 'workflow_dispatch'
         env:
           CIFRA_URL: ${{ github.event.client_payload.url || github.event.inputs.url }}
         run: node scripts/buscar.mjs
-      - name: Commit
+
+      - name: Notas de um trecho do YouTube
+        if: github.event.action == 'notas'
+        env:
+          VIDEO: ${{ github.event.client_payload.video }}
+          INI: ${{ github.event.client_payload.ini }}
+          FIM: ${{ github.event.client_payload.fim }}
+          ID: ${{ github.event.client_payload.id }}
+        run: |
+          python3 -m pip install -q -U yt-dlp
+          yt-dlp --version
+          node scripts/notas.mjs
+
+      - name: Gravar na biblioteca
+        env:
+          MSG: ${{ github.event.action || 'busca' }} ${{ github.event.client_payload.url || github.event.client_payload.id || github.event.inputs.url }}
         run: |
           git config user.name "cifras-bot"
           git config user.email "cifras-bot@users.noreply.github.com"
-          git add docs/dados
-          git commit -m "cifra: ${CIFRA_URL}" || { echo "nada a gravar"; exit 0; }
           for i in 1 2 3 4; do
-            git push && exit 0
-            git pull --rebase -X theirs || true
+            git fetch -q origin main && git reset -q --hard origin/main
+            node scripts/aplicar.mjs "$RESULTADO"
+            git add docs/dados
+            git commit -q -m "$MSG" || { echo "nada a gravar"; exit 0; }
+            git push -q origin HEAD:main && exit 0
+            echo "push recusado (alguem gravou antes); tentando de novo"
+            sleep 3
           done
           exit 1
-        env:
-          CIFRA_URL: ${{ github.event.client_payload.url || github.event.inputs.url }}
