@@ -32,7 +32,18 @@ gravacao. Sem token o app so le. Sem internet, abre a copia local.
 
 RIFFS: QUE NOTAS A MUSICA ESTA TOCANDO
 --------------------------------------
-Em cada riff (trecho do video, ex.: 1:48 a 1:54) ha tres jeitos de o app DETECTAR as notas:
+Em cada riff (trecho do video, ex.: 1:48 a 1:54) ha quatro jeitos de o app DETECTAR as notas:
+  🎬 pelo link do YouTube  o app pede a uma GitHub Action que baixe SO o trecho do video,
+                      analise e grave o resultado no riff (1 a 3 min). E o caminho "so pelo
+                      link", sem microfone. PROBLEMA (29/09/2026): o YouTube barra os
+                      servidores do GitHub ("Sign in to confirm you're not a bot"), mesmo com
+                      provedor de PO Token; instancias publicas de Piped/Invidious estao
+                      mortas. A Action so passa se existir o secret YT_COOKIES no repositorio
+                      (Settings -> Secrets and variables -> Actions -> New repository secret),
+                      com o conteudo de um cookies.txt exportado do navegador logado no
+                      YouTube (extensao "Get cookies.txt LOCALLY"). Use uma CONTA DESCARTAVEL:
+                      o Google pode derrubar a sessao, e quem tiver o secret entra na conta.
+                      Sem o secret, o app avisa o bloqueio e sobram os tres caminhos abaixo.
   🎤 microfone        celular: o app toca o trecho no video e ouve pelo microfone. Volume
                       alto, sem fone, aparelho perto do alto-falante (ou de outro aparelho
                       tocando a musica).
@@ -42,11 +53,11 @@ Em cada riff (trecho do video, ex.: 1:48 a 1:54) ha tres jeitos de o app DETECTA
                       Mais preciso de todos; o tempo do arquivo precisa bater com o do video.
 O resultado mostra as notas presentes no trecho (com oitava), o acorde provavel e a
 sequencia de nota mais forte por instante (ex.: E5(0.5s) G#5(0.5s) B5(0.5s)), desenhadas
-no piano. Fica salvo no riff. E uma leitura por espectro, nao um ouvido humano: funciona
-bem para linha de teclado/guitarra e acordes simples; em trecho cheio (bateria, voz, baixo
-junto) ele lista as notas dominantes. Use como ponto de partida e confira no instrumento.
-O YouTube nao entrega o audio ao site (o player e de outra origem), por isso a captacao e
-pelo aparelho.
+no piano. Fica salvo no riff. A analise (docs/analise.js) e a mesma no app e na Action.
+E uma leitura por espectro, nao um ouvido humano: funciona bem para linha de teclado ou
+guitarra e acordes simples; em trecho cheio (bateria, voz, baixo junto) lista as notas
+dominantes. Use como ponto de partida e confira no instrumento.
+Por que nao direto do player: o YouTube nao entrega o audio ao site (iframe de outra origem).
 Apagar um riff: botao 🗑 no proprio cartao.
 
 INSTALAR NO CELULAR
@@ -91,6 +102,9 @@ ARQUIVOS
   docs/dados/biblioteca.json       a biblioteca
   docs/dados/ultimo-erro.json      ultimo erro da Action (o app le e mostra)
   scripts/cifraclub.mjs            leitura da pagina do Cifra Club (mesma regra do app)
-  scripts/buscar.mjs               o que a Action roda
+  scripts/buscar.mjs               Action "buscar": le a pagina do Cifra Club -> resultado
+  scripts/notas.mjs                Action "notas": baixa o trecho do YouTube e analisa -> resultado
+  scripts/aplicar.mjs              grava o resultado na biblioteca (sempre sobre a versao mais nova)
+  docs/analise.js                  a analise de audio, compartilhada entre app e Action
   scripts/csp.mjs                  recalcula o hash da CSP depois de editar o index
   .github/workflows/buscar-cifra.yml   a Action

@@ -44,7 +44,12 @@ jobs:
           INI: ${{ github.event.client_payload.ini }}
           FIM: ${{ github.event.client_payload.fim }}
           ID: ${{ github.event.client_payload.id }}
+          # OPCIONAL: cookies de uma conta do YouTube (Settings -> Secrets -> Actions -> YT_COOKIES,
+          # conteudo de um cookies.txt exportado do navegador). Sem isso o YouTube barra os
+          # servidores do GitHub ("Sign in to confirm you're not a bot"). Use conta descartavel.
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
         run: |
+          if [ -n "$YT_COOKIES" ]; then printf '%s\n' "$YT_COOKIES" > /tmp/cookies.txt; export COOKIES=/tmp/cookies.txt; echo "cookies: presentes"; else echo "cookies: nenhum (secret YT_COOKIES vazio)"; fi
           # yt-dlp + plugin de PO Token; o provedor roda em Docker na propria maquina da Action
           # (o YouTube exige esse token de servidores de datacenter; sem ele: "not a bot").
           python3 -m pip install -q -U yt-dlp bgutil-ytdlp-pot-provider

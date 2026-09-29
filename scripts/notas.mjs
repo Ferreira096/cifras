@@ -30,7 +30,8 @@ const clientes = ['mweb', 'web', 'web_embedded', 'tv', 'android', 'ios'];
 let ok = false, ultimoErro = '';
 for (const c of clientes) {
   try { fs.rmSync('trecho.wav', { force: true }); } catch (e) {}
-  const r = spawnSync('yt-dlp', ['--no-playlist', '-f', 'ba/b', '--download-sections', `*${a}-${b}`, '--force-keyframes-at-cuts', '-x', '--audio-format', 'wav', '-o', 'trecho.%(ext)s', '--extractor-args', `youtube:player_client=${c}`, url], { encoding: 'utf8', timeout: 240000 });
+  const cookies = process.env.COOKIES && fs.existsSync(process.env.COOKIES) ? ['--cookies', process.env.COOKIES] : [];
+  const r = spawnSync('yt-dlp', [...cookies, '--no-playlist', '-f', 'ba/b', '--download-sections', `*${a}-${b}`, '--force-keyframes-at-cuts', '-x', '--audio-format', 'wav', '-o', 'trecho.%(ext)s', '--extractor-args', `youtube:player_client=${c}`, url], { encoding: 'utf8', timeout: 240000 });
   const erros = (r.stderr || '').split('\n').filter((l) => /ERROR|WARNING.*(pot|PO Token|token)/i.test(l));
   console.log(`yt-dlp [${c}]: status ${r.status}` + (erros.length ? ' | ' + erros.join(' | ').slice(0, 300) : ''));
   if (r.status === 0 && fs.existsSync('trecho.wav')) { ok = true; break; }
