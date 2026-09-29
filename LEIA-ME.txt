@@ -1,85 +1,68 @@
-MINHAS CIFRAS - VERSAO GITHUB PAGES
-===================================
-Tudo nesta pasta vai para um repositorio do GitHub. O site sai de docs/ pelo GitHub Pages,
-a biblioteca e o arquivo docs/dados/biblioteca.json e a busca no Cifra Club e feita por
-uma GitHub Action (o navegador nao consegue ler o Cifra Club direto).
+MINHAS CIFRAS - GITHUB PAGES
+============================
+No ar em:  https://ferreira096.github.io/cifras/
+Repositorio: https://github.com/Ferreira096/cifras  (publico; o token NUNCA vai para ele)
 
+O site sai de docs/ pelo GitHub Pages e a biblioteca e o arquivo docs/dados/biblioteca.json.
 Ja vem com o "Poderoso Nome" dentro.
 
-PASSO A PASSO (uma vez so)
---------------------------
-1. Crie o repositorio: github.com -> New repository -> nome "cifras", Public, sem README.
-   (Pages em repositorio privado exige plano pago; cifra nao e segredo, e o token NAO
-   fica no repositorio.)
+COMO ADICIONAR UMA CIFRA
+------------------------
+Caminho principal: o FAVORITO. O Cifra Club bloqueia os servidores do GitHub (403), entao
+quem le a pagina e o seu proprio navegador:
+  1. No app, abra "Configurar o favorito (uma vez por aparelho)" e toque em "Copiar codigo".
+  2. Crie um favorito chamado "Cifras" cujo endereco e esse codigo (as instrucoes por
+     aparelho estao na propria tela: Android, iPhone e PC).
+  3. Na pagina de uma cifra no Cifra Club, acione o favorito (no Android: digite "Cifras"
+     na barra de endereco e toque nele). O app abre com a cifra ja guardada, acordes no lugar.
+Caminho secundario: "Ou cole o link" dispara uma GitHub Action que tenta buscar a pagina.
+Hoje ela e barrada pelo Cifra Club; fica como tentativa, e o app avisa se falhar.
 
-2. Suba os arquivos: no repositorio vazio, "uploading an existing file" -> arraste o
-   CONTEUDO desta pasta (as pastas .github, docs e scripts, e este LEIA-ME). Commit.
-   Se o navegador nao deixar arrastar a pasta oculta .github, crie o arquivo pela
-   interface: Add file -> Create new file -> nome ".github/workflows/buscar-cifra.yml"
-   e cole o conteudo do arquivo de mesmo nome daqui.
-   Confira que docs/.nojekyll e docs/robots.txt subiram (arquivos pequenos, faceis de
-   ficar para tras).
+TOKEN E PIN (uma vez por aparelho)
+----------------------------------
+Para GRAVAR (adicionar, mudar tom, riffs, apagar) o app precisa de um token do GitHub:
+  github.com -> Settings (perfil) -> Developer settings -> Personal access tokens
+  -> Fine-grained tokens -> Generate new token.
+     Repository access: Only select repositories -> "cifras"
+     Permissions -> Repository permissions -> Contents: Read and write
+     Expiration: 90 dias ou 1 ano (quando vencer, o app avisa e pede outro).
+No app, toque na chave (🔑), cole o token e crie um PIN (minimo 6 caracteres). O token fica
+CIFRADO no aparelho com esse PIN; o PIN e pedido uma vez a cada abertura, na primeira
+gravacao. Sem token o app so le. Sem internet, abre a copia local.
 
-3. Ligue o Pages: Settings -> Pages -> Source "Deploy from a branch" -> Branch "main",
-   pasta "/docs" -> Save. Em 1 a 2 min o site esta em
-      https://SEU-USUARIO.github.io/cifras/
-
-4. Libere a Action para gravar: Settings -> Actions -> General -> Workflow permissions
-   -> "Read and write permissions" -> Save.
-
-5. Crie o token que o app usa para gravar (no celular e no PC):
-   github.com -> Settings (do seu perfil) -> Developer settings -> Personal access tokens
-   -> Fine-grained tokens -> Generate new token.
-      Repository access: Only select repositories -> "cifras"
-      Permissions -> Repository permissions -> Contents: Read and write
-      Expiration: 90 dias ou 1 ano (quando vencer, o app avisa e pede outro).
-   Copie o token. No app, toque na chave (🔑) no topo, cole o token e crie um PIN
-   (minimo 6 caracteres). O token fica CIFRADO no aparelho com esse PIN, e o PIN e pedido
-   uma vez a cada abertura do app, na primeira gravacao.
-
-6. Instale no celular: abra o endereco no Chrome -> menu ⋮ -> "Adicionar a tela inicial".
-
-COMO FUNCIONA DEPOIS
---------------------
-  - Colar link do Cifra Club -> o app dispara a Action -> em 30 s a 2 min a cifra aparece.
-    Da para acompanhar na aba Actions do repositorio. Erros (link errado, 404) aparecem
-    no proprio app.
-  - Mudar tom, simplificar, salvar riff, apagar -> o app grava o JSON direto no
-    repositorio (um commit por mudanca, juntadas em 1,5 s). Se dois aparelhos gravarem
-    ao mesmo tempo, o app rele, mescla e reenvia sozinho.
-  - Sem o token, o app so le (e guarda as mudancas apenas no aparelho).
-  - Sem internet, abre a copia local.
+INSTALAR NO CELULAR
+-------------------
+Chrome -> abrir o endereco -> menu ⋮ -> "Adicionar a tela inicial".
 
 SEGURANCA (o que esta feito e por que)
 --------------------------------------
-  - Fora dos buscadores: <meta name="robots" content="noindex, nofollow, noarchive,
-    noimageindex, nosnippet"> em cada pagina e docs/robots.txt (Disallow: /).
-    Limite honesto: o GitHub Pages nao deixa mandar cabecalho X-Robots-Tag, e o
-    robots.txt so vale de verdade na raiz do usuario (SEU-USUARIO.github.io/robots.txt),
-    que pertence a outro repositorio; a meta e o que segura. O REPOSITORIO em si e
-    publico e aparece na busca do GitHub, isso nao tem como evitar sem plano pago.
-  - Content-Security-Policy na <meta>: script so o proprio (por hash SHA-256, sem
-    'unsafe-inline') mais o player do YouTube; conexoes so ao proprio site e a
-    api.github.com; frames so do YouTube; nada de objetos, formularios ou <base>.
+  - Fora dos buscadores: meta robots (noindex, nofollow, noarchive, noimageindex,
+    nosnippet) e docs/robots.txt. Limite: o GitHub Pages nao manda cabecalho X-Robots-Tag
+    e o robots.txt so vale na raiz do usuario (outro repositorio); a meta e o que segura.
+    O REPOSITORIO e publico e aparece na busca do GitHub (so plano pago evita).
+  - Content-Security-Policy na <meta>: script so o proprio (hash SHA-256, sem
+    'unsafe-inline') e o player do YouTube; conexoes so ao site e a api.github.com;
+    frames so do YouTube; nada de objetos, formularios ou <base>.
     ATENCAO: mudou uma letra do script de docs/index.html? Rode "node scripts/csp.mjs"
-    antes de subir, senao a pagina abre em branco.
-  - Token do GitHub: fine-grained, um repositorio so, Contents apenas, com validade.
-    No aparelho fica cifrado (AES-GCM, chave derivada do PIN por PBKDF2 com 310 mil
-    voltas) e so existe aberto na memoria da aba. Motivo: todos os sites *.github.io do
-    mesmo usuario dividem a mesma origem (o site do casamento le o mesmo localStorage);
-    o PIN e o que separa. Pior caso se vazar: alguem edita cifras. Nada alem disso.
-  - Tudo que vem do Cifra Club ou do JSON e escapado antes de ir para a tela (testado
-    com <script> dentro da letra: aparece como texto).
+    antes de subir, senao a pagina abre em branco. O script ja normaliza CRLF -> LF.
+  - Token: fine-grained, um repositorio, Contents apenas, com validade. No aparelho fica
+    cifrado (AES-GCM, chave por PBKDF2 com 310 mil voltas a partir do PIN) e so existe
+    aberto na memoria da aba. Motivo: todos os sites *.github.io do mesmo usuario dividem a
+    mesma origem (o site do casamento le o mesmo localStorage). Pior caso se vazar:
+    alguem edita cifras.
+  - Tudo que vem do Cifra Club, do favorito ou do JSON e escapado antes de ir para a tela
+    (testado com <script> dentro da letra: vira texto).
   - YouTube em modo privacidade (youtube-nocookie.com).
-  - Action: permissao so "contents: write", versoes das actions travadas por hash de
-    commit (nao por tag), uma execucao por vez, dispara so quem tem o token.
+  - Action: permissao so "contents: write", actions travadas por hash de commit, uma
+    execucao por vez, dispara so quem tem o token.
   - Sem segredo em arquivo nenhum desta pasta.
 
-SE A ACTION FALHAR COM 403
---------------------------
-O Cifra Club barra alguns clientes. O script tenta primeiro o fetch do Node e, se for
-barrado, abre um Chrome de verdade (Playwright) dentro da Action — demora mais (uns 2 min),
-mas passa. Veja o log na aba Actions.
+PUBLICAR MUDANCAS
+-----------------
+A pasta e um repositorio git ligado ao GitHub (gh ja autorizado nesta maquina):
+  node scripts/csp.mjs   (se mexeu no index.html)
+  git add -A ; git commit -m "..." ; git push
+O Pages republica sozinho em 1 a 2 min.
 
 ARQUIVOS
 --------
@@ -88,7 +71,7 @@ ARQUIVOS
   docs/robots.txt, docs/.nojekyll  fora dos buscadores; Pages sem Jekyll
   docs/dados/biblioteca.json       a biblioteca
   docs/dados/ultimo-erro.json      ultimo erro da Action (o app le e mostra)
-  scripts/cifraclub.mjs            leitura da pagina do Cifra Club
+  scripts/cifraclub.mjs            leitura da pagina do Cifra Club (mesma regra do app)
   scripts/buscar.mjs               o que a Action roda
   scripts/csp.mjs                  recalcula o hash da CSP depois de editar o index
   .github/workflows/buscar-cifra.yml   a Action

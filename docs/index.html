@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-klGxSa+afKOz/cZdxtnFRS59JXIPr2AFRbwncHge/O4=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7FtopplX4V4X8mUsMdJKVfwWamF0FH82Hkok3abhGr8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icone-192.png">
@@ -55,6 +55,12 @@ a{color:var(--sec)}
 .aviso{background:#2a1f10;border:1px solid #6b4a1a;color:#ffd39a;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 12px}
 .aviso.erro{background:#2e1414;border-color:#7a2b2b;color:#ffb3b3}
 .rodape{color:var(--tx2);font-size:12px;text-align:center;margin-top:30px;line-height:1.6}
+.card{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 6px;font-size:15px}
+.passos{font-size:13px;color:var(--tx2);line-height:1.55;margin:6px 0 0;padding-left:18px}
+.passos li{margin-bottom:6px}
+details summary{cursor:pointer;font-size:13px;color:var(--sec);margin-top:4px}
+.bm{font-family:var(--mono);font-size:11px;word-break:break-all;background:#000;padding:8px;border-radius:8px;max-height:72px;overflow:auto;color:#aaa;margin-top:8px}
 
 /* ---------- viewer ---------- */
 .barra{position:sticky;z-index:19;background:var(--bg);border-bottom:1px solid var(--linha);display:flex;gap:6px;padding:8px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -348,13 +354,73 @@ const parseT=(t)=>{t=String(t||'').trim(); if(!t) return 0; const p=t.split(':')
 const ytId=(u)=>{const m=String(u||'').match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/)||String(u||'').match(/^([\w-]{11})$/); return m?m[1]:'';};
 
 /* ====================== rotas ====================== */
-function rota(){const m=location.hash.match(/^#\/c\/([^/]+)/); if(!m) return {tela:'lista'}; try{ return {tela:'cifra',id:decodeURIComponent(m[1])}; }catch(e){ return {tela:'lista'}; }}
+function rota(){
+  const m=location.hash.match(/^#\/c\/([^/]+)/); if(m){ try{ return {tela:'cifra',id:decodeURIComponent(m[1])}; }catch(e){ return {tela:'lista'}; } }
+  const im=location.hash.match(/^#\/importar\/(.+)$/); if(im) return {tela:'importar',dados:im[1]};
+  return {tela:'lista'};
+}
 window.addEventListener('hashchange',()=>{pararRolagem(); pararLoop(); render();});
 
 function render(){
   const r=rota();
+  if(r.tela==='importar'){ importar(r.dados); return; }
   if(r.tela==='cifra'){const it=lib.itens.find(i=>i.id===r.id); if(it) return renderCifra(it); location.hash='#/'; return;}
   renderLista();
+}
+
+/* ====================== importar pelo favorito ======================
+   O Cifra Club bloqueia os servidores do GitHub (403 pela Akamai), entao o caminho que
+   sempre funciona e o proprio navegador do usuario: um favorito (bookmarklet) roda na
+   pagina do Cifra Club, pega o <pre> da cifra, o tom e o titulo, e abre este app em
+   #/importar/<base64 do JSON>. Aqui a cifra e lida com a MESMA regra do scripts/cifraclub.mjs. */
+function bookmarklet(){
+  const app=location.origin+location.pathname.replace(/[^/]*$/,'');
+  return "javascript:(function(){var p=document.querySelector('pre');if(!p){alert('Abra uma cifra do Cifra Club e tente de novo.');return;}var k=document.getElementById('key'),c=document.getElementById('capo');var d={t:document.title,k:k?k.innerText:'',c:c?c.innerText:'',u:location.href,h:p.innerHTML.replace(/<b [^>]*>/g,'<b>')};location.href='"+app+"#/importar/'+btoa(unescape(encodeURIComponent(JSON.stringify(d))));})();";
+}
+const desentidade=(s)=>{const d=document.createElement('textarea'); d.innerHTML=String(s||''); return d.value;};
+const soTexto=(x)=>desentidade(String(x||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();
+function parsePre(preHtml){
+  let hh=String(preHtml||'').replace(/<div[^>]*>/gi,'').replace(/<\/div>/gi,'').replace(/<br\s*\/?>/gi,'\n');
+  const linhas=[];
+  for(const raw of hh.split(/\r?\n/)){
+    const segs=[]; let resto=raw, buf='', m; const re=/<b\b[^>]*>([\s\S]*?)<\/b>/i;
+    while((m=re.exec(resto))){ buf+=resto.slice(0,m.index); const c=soTexto(m[1]); if(buf){segs.push(desentidade(buf.replace(/<[^>]+>/g,''))); buf='';} if(c) segs.push({c}); resto=resto.slice(m.index+m[0].length); }
+    buf+=resto; if(buf) segs.push(desentidade(buf.replace(/<[^>]+>/g,'')));
+    linhas.push(segs.filter(s=>s!==''));
+  }
+  while(linhas.length&&!linhas[0].length) linhas.shift();
+  while(linhas.length&&!linhas[linhas.length-1].length) linhas.pop();
+  return linhas;
+}
+function lerImportacao(b64){
+  let d; try{ d=JSON.parse(decodeURIComponent(escape(atob(b64)))); }catch(e){ throw new Error('Dados do favorito ilegiveis. Refaca o favorito (passo "Configurar").'); }
+  const m=String(d.u||'').match(/^https?:\/\/(?:www\.|m\.)?cifraclub\.com\.br\/([^/?#\s]+)\/([^/?#\s]+)\/?/i);
+  if(!m||/\.html?$/i.test(m[2])) throw new Error('Isso nao veio de uma pagina de cifra do Cifra Club.');
+  const url=`https://www.cifraclub.com.br/${m[1].toLowerCase()}/${m[2].toLowerCase()}/`, id=`${m[1].toLowerCase()}__${m[2].toLowerCase()}`;
+  const p=String(d.t||'').replace(/\s*-\s*Cifra Club\s*$/i,'').split(/\s+-\s+/);
+  const titulo=p[0]||m[2].replace(/-/g,' '), artista=p.slice(1).join(' - ')||m[1].replace(/-/g,' ');
+  const tk=String(d.k||'').replace(/\s+/g,' ').match(/Tom\s*([A-G][#b]?m?)(?![A-Za-z])/); const tom=tk?tk[1]:'';
+  const ck=String(d.c||'').replace(/\s+/g,' ').match(/Capotraste\s*(.*?)\s*Afina/); const capo=(ck&&!/sem capotraste/i.test(ck[1]))?ck[1]:'';
+  const linhas=parsePre(d.h);
+  if(!linhas.length||!linhas.some(l=>l.some(s=>s&&s.c))) throw new Error('Nao achei acordes nessa pagina.');
+  return {id,url,titulo,artista,tom,capo,linhas};
+}
+async function importar(b64){
+  const app=document.getElementById('app');
+  app.innerHTML=`<div class="topo"><h1>Importando...</h1></div><div class="wrap"><div class="aviso" id="msg">Lendo a cifra...</div></div>`;
+  try{
+    const c=lerImportacao(b64);
+    const ja=lib.itens.find(i=>i.id===c.id);
+    if(ja) Object.assign(ja,{titulo:c.titulo,artista:c.artista,tom:c.tom,capo:c.capo,linhas:c.linhas,url:c.url,em:new Date().toISOString()});
+    else lib.itens.unshift({id:c.id,url:c.url,titulo:c.titulo,artista:c.artista,tom:c.tom,capo:c.capo,video:'',linhas:c.linhas,riffs:[],aj:{n:0,simples:false,fonte:17},em:new Date().toISOString()});
+    history.replaceState(null,'','#/c/'+encodeURIComponent(c.id)); // tira o JSON enorme do endereco
+    toast(ja?'Cifra atualizada':'Cifra guardada');
+    salvar();
+  }catch(e){
+    history.replaceState(null,'','#/');
+    app.querySelector('#msg').className='aviso erro'; app.querySelector('#msg').textContent=e.message;
+    setTimeout(render,2500);
+  }
 }
 
 /* ====================== biblioteca ====================== */
@@ -364,13 +430,30 @@ function renderLista(){
   <div class="topo"><h1>Minhas Cifras<span class="sub">${lib.itens.length} cifra(s)${online?'':' · sem conexao (copia local)'}</span></h1>
     <button class="icone" id="btToken" title="Token do GitHub">🔑</button><button class="icone" id="btRecarregar" title="Recarregar">↻</button></div>
   <div class="wrap">
-    <div class="add"><input id="link" type="url" inputmode="url" placeholder="Cole o link do Cifra Club" autocomplete="off"><button class="pri" id="btAdd">Adicionar</button></div>
-    <p class="dica">Ex.: https://www.cifraclub.com.br/artista/musica/ — uma GitHub Action busca a cifra (1 a 2 min), guarda no repositorio e voce simplifica, transpoe e marca riffs do YouTube.</p>
+    <div class="card"><h3>Adicionar do Cifra Club</h3>
+      <p class="passos" style="padding-left:0">Abra a cifra no navegador e toque no favorito <b>➕ Cifras</b>. A cifra entra aqui na hora, com os acordes no lugar certo.</p>
+      <details id="cfg"><summary>Configurar o favorito (uma vez por aparelho)</summary>
+        <ol class="passos">
+          <li>Toque em <b>Copiar codigo</b> abaixo.</li>
+          <li><b>Android (Chrome):</b> abra qualquer site, menu ⋮ → ☆ (salvar favorito) → toque em "Editar": nome <b>Cifras</b>, e no endereco apague tudo e <b>cole o codigo</b>. Depois, na pagina de uma cifra, digite "Cifras" na barra de endereco e toque no favorito que aparece.</li>
+          <li><b>iPhone (Safari):</b> salve qualquer pagina nos Favoritos, depois edite o favorito: nome <b>Cifras</b>, endereco = o codigo colado. Na cifra, abra Favoritos e toque em Cifras.</li>
+          <li><b>PC (Chrome):</b> Ctrl+D em qualquer pagina, "Mais...", nome <b>Cifras</b>, URL = o codigo colado. Na cifra, clique no favorito.</li>
+        </ol>
+        <div class="bm" id="bm"></div>
+        <div style="margin-top:8px;display:flex;gap:8px"><button class="pri mini" id="btCopiar">Copiar codigo</button><span class="dica" style="margin:0;align-self:center">O codigo aponta para este endereco do app.</span></div>
+      </details>
+    </div>
+    <div class="card"><h3>Ou cole o link</h3>
+      <div class="add"><input id="link" type="url" inputmode="url" placeholder="https://www.cifraclub.com.br/artista/musica/" autocomplete="off"><button id="btAdd">Buscar</button></div>
+      <p class="dica" style="margin-bottom:0">Vai pela GitHub Action (1 a 2 min). Hoje o Cifra Club costuma bloquear os servidores do GitHub; se falhar, use o favorito.</p>
+    </div>
     <div id="msg"></div>
     ${lib.itens.length?`<ul class="lista">${lib.itens.map(i=>`<li><a class="item" href="#/c/${encodeURIComponent(i.id)}"><span class="t">${h(i.titulo)}</span><span class="a">${h(i.artista)}${i.riffs&&i.riffs.length?` · ${i.riffs.length} riff(s)`:''}</span></a><span class="tag">${h(tomAtual(i))}</span><button class="apagar" data-id="${h(i.id)}" title="Apagar">✕</button></li>`).join('')}</ul>`
     :`<div class="vazio">Nenhuma cifra ainda.<br>Cole um link do Cifra Club acima.</div>`}
     <p class="rodape">Instale como app: no Chrome do celular, menu ⋮ → "Adicionar a tela inicial".</p>
   </div>`;
+  app.querySelector('#bm').textContent=bookmarklet();
+  app.querySelector('#btCopiar').onclick=async()=>{ try{ await navigator.clipboard.writeText(bookmarklet()); toast('Codigo copiado. Agora crie o favorito.'); }catch(e){ const r=document.createRange(); r.selectNodeContents(app.querySelector('#bm')); getSelection().removeAllRanges(); getSelection().addRange(r); toast('Selecionei o codigo: copie com o menu do navegador',true); } };
   const link=app.querySelector('#link');
   const add=async()=>{
     const u=link.value.trim(); if(!u) return;
