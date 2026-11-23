@@ -110,6 +110,15 @@ function roloDeNotas(det,n,bemol){
   const largura=col, notas=[...new Set(ev.map(e=>e.midi))].sort((a,b)=>b-a);
   return notas.map(m=>{ const arr=new Array(largura).fill('-'); for(const e of ev) if(e.midi===m){ arr[e.col]='o'; for(let k=1;k<e.w;k++) arr[e.col+k]='='; } return {nota:nomeMidiTom(m,bemol),corpo:arr.join('')}; });
 }
+/* A sequencia em "tempos", para desenhar quadrinhos com o nome da nota (mesmo formato de
+   CifraClub.tabEmTempos): linhas da mais aguda para a mais grave; l = 0..4 conforme a duracao. */
+function temposDeNotas(det,n,bemol){
+  n=+n||0; const seq=sequenciaDe(det&&det.seq); if(seq.length<2) return null;
+  const midis=[...new Set(seq.map(s=>s.midi+n))].sort((a,b)=>b-a);
+  const linhas=midis.map(m=>({nome:nomePc(m,bemol),oit:Math.floor(m/12)-1}));
+  const tempos=seq.map(s=>({i:[midis.indexOf(s.midi+n)],l:Math.max(0,Math.min(4,Math.round((s.dur-0.25)/0.25)))}));
+  return {linhas,tempos};
+}
 
-export { analisarPCM, textoDeteccao, nomeMidi, fft, transporNotas, sequenciaDe, notasBase, roloDeNotas };
-globalThis.Analise = { analisarPCM, textoDeteccao, nomeMidi, transporNotas, sequenciaDe, notasBase, roloDeNotas };
+export { analisarPCM, textoDeteccao, nomeMidi, fft, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas };
+globalThis.Analise = { analisarPCM, textoDeteccao, nomeMidi, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas };

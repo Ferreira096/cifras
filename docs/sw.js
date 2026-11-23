@@ -7,8 +7,8 @@
    - dados/: rede primeiro e guarda; sem rede, a ultima resposta.
    - YouTube, api.github.com e o leitor: nunca passam por aqui.
    CACHE e CASCA sao carimbados por scripts/csp.mjs; nao editar a mao. */
-const CACHE = 'cifras-44ab0c298e';
-const CASCA = ['./', 'manifest.json', 'icone-192.png', 'icone-512.png', 'cifraclub.js?v=2fcdea3270', 'analise.js?v=e4d77c81fa', 'dados/biblioteca.json'];
+const CACHE = 'cifras-8b807281a3';
+const CASCA = ['./', 'manifest.json', 'icone-192.png', 'icone-512.png', 'cifraclub.js?v=48499b4c37', 'analise.js?v=1f3b8f666c', 'dados/biblioteca.json'];
 const RAIZ = self.registration.scope; // .../cifras/
 
 function ehPagina(u) { return u.href.split(/[?#]/)[0] === RAIZ || u.pathname.endsWith('/index.html'); }

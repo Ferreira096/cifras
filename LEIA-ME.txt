@@ -44,9 +44,12 @@ o app funciona normal e guarda as mudancas no aparelho; elas sobem quando destra
 TABLATURA DE TECLADO
 --------------------
 As tablaturas do Cifra Club sao de guitarra/violao (seis cordas, numero = casa). O app
-converte cada casa na nota que ela soa e redesenha o trecho com uma linha por tecla, da
-mais aguda para a mais grave: o "o" marca quando tocar, notas na mesma coluna sao juntas,
-e as barras de compasso ficam no lugar. As notas acompanham a mudanca de tom.
+converte cada casa na nota que ela soa e desenha o trecho em quadrinhos com o nome da nota,
+lidos da esquerda para a direita: quanto mais alto o quadrinho, mais aguda a nota; quadrinhos
+na mesma coluna sao tocados juntos; mais espaco depois de um quadrinho = esperar mais; os
+compassos ficam separados por uma barra e quebram de linha inteiros (nada de rolar para o
+lado). As notas acompanham a mudanca de tom. (Antes era um bloco de tracos com uma linha por
+tecla, "E4 |--o---"; foi trocado em 23/11/2026 porque era dificil de ler.)
 Oitava em som real: 1a corda solta = E4 (o Mi logo acima do Do central).
 O botao "Tab: teclado / guitarra", na barra da cifra, volta para a tablatura original.
 Limites: assume afinacao padrao (ou a indicada no rotulo da corda, como drop D); ligados,
@@ -70,7 +73,8 @@ O resultado, em cada riff:
                        na ordem em que aparecem, sem repetir. E o que tocar na mao direita.
   Baixo (mao esquerda) as notas da linha grave (abaixo do Si 3). Numa gravacao de banda o
                        baixo domina o som; por isso ele e separado do riff.
-  Desenho no tempo     uma linha por tecla, "o" onde a nota entra e "=" enquanto dura.
+  Desenho no tempo     os mesmos quadrinhos da tablatura de teclado; aqui o quadrinho mais
+                       largo e a nota mais longa.
   Acorde provavel e a lista de todas as notas ouvidas.
 AS NOTAS ACOMPANHAM O TOM: detectadas ou digitadas, elas ficam guardadas no tom original da
 cifra e aparecem no tom que estiver na tela. Mudou o tom, o riff muda junto. Ao digitar,

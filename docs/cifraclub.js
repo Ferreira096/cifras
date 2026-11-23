@@ -145,7 +145,7 @@ function ehLinhaDeTab(txt) {
   const tracos = (corpo.match(/-/g) || []).length, validos = (corpo.match(/[-0-9|hpbrxst~/\\^()<>.=* ]/gi) || []).length;
   return tracos >= corpo.length * 0.4 && validos >= corpo.length * 0.9;
 }
-function tabParaTeclado(textos, semitons, bemol) {
+function lerTab(textos, semitons) { // {eventos:[{col,midi}], barras:[col], largura} ou null
   const linhas = textos.map((t) => { const m = RE_TAB.exec(t); return m ? { rot: m[1][0].toUpperCase() + m[1].slice(1), corpo: m[2].replace(/\s+$/, '') } : null; }).filter(Boolean);
   if (!linhas.length) return null;
   // afinacao de cada linha: segue a padrao de cima para baixo; rotulo diferente (drop D etc.) vai para a nota mais proxima
@@ -169,6 +169,11 @@ function tabParaTeclado(textos, semitons, bemol) {
   }
   if (!eventos.length) return null;
   const barras = []; for (let i = 0; i < linhas[0].corpo.length; i++) if (linhas[0].corpo[i] === '|') barras.push(i);
+  return { eventos, barras, largura };
+}
+function tabParaTeclado(textos, semitons, bemol) {
+  const t = lerTab(textos, semitons); if (!t) return null;
+  const { eventos, barras, largura } = t;
   const nome = (m) => (bemol ? N_BEMOL : N_SUST)[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
   const notas = [...new Set(eventos.map((e) => e.midi))].sort((a, b) => b - a);
   return notas.map((m) => {
@@ -177,6 +182,26 @@ function tabParaTeclado(textos, semitons, bemol) {
     return { nota: nome(m), corpo: arr.join('') };
   });
 }
+/* A mesma tablatura em "tempos", para desenhar quadrinhos com o nome da nota:
+   { linhas: [{nome:'F#', oit:4}] da mais aguda para a mais grave,
+     tempos: [{i:[indices de linhas tocadas juntas], l:0..4 (folga ate a proxima nota)} | {barra:true}] } */
+function tabEmTempos(textos, semitons, bemol) {
+  const t = lerTab(textos, semitons); if (!t) return null;
+  const N = bemol ? N_BEMOL : N_SUST;
+  const midis = [...new Set(t.eventos.map((e) => e.midi))].sort((a, b) => b - a);
+  const linhas = midis.map((m) => ({ nome: N[((m % 12) + 12) % 12], oit: Math.floor(m / 12) - 1 }));
+  const cols = [...new Set(t.eventos.map((e) => e.col))].sort((a, b) => a - b);
+  let passo = Infinity; for (let k = 1; k < cols.length; k++) passo = Math.min(passo, cols[k] - cols[k - 1]);
+  if (!isFinite(passo) || passo < 1) passo = 1;
+  const tempos = [];
+  cols.forEach((c, k) => {
+    const prox = cols[k + 1];
+    const i = [...new Set(t.eventos.filter((e) => e.col === c).map((e) => midis.indexOf(e.midi)))].sort((a, b) => a - b);
+    tempos.push({ i, l: prox == null ? 0 : Math.max(0, Math.min(4, Math.round((prox - c) / passo) - 1)) });
+    if (prox != null && t.barras.some((b) => b > c && b < prox)) tempos.push({ barra: true });
+  });
+  return { linhas, tempos };
+}
 
-export { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado };
-globalThis.CifraClub = { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado };
+export { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado, tabEmTempos };
+globalThis.CifraClub = { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado, tabEmTempos };
