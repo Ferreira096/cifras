@@ -76,23 +76,36 @@ guardando tudo (campos seq, baixo, acorde).
 AS NOTAS ACOMPANHAM O TOM: detectadas ou digitadas, elas ficam guardadas no tom original da
 cifra e aparecem no tom que estiver na tela. Mudou o tom, o riff muda junto. Ao digitar,
 escreva no tom da tela.
-QUANTO A DETECCAO ACERTA (medido em 23/11/2026; refazer com scripts/avalia)
-  node scripts/avalia/avalia.mjs        12 melodias sinteticas com gabarito exato (piano,
-                                        guitarra distorcida, teclado, com e sem baixo, bateria
-                                        e teclado de fundo): 100 de 103 notas = 97% (antes 89%).
-  node scripts/avalia/avalia-real.mjs   6 riffs famosos baixados do YouTube, comparados com as
-                                        notas publicadas: 51 de 76 = 67% (antes 59%).
-      Seven Nation Army (riff grave sozinho)        7/7
-      Sweet Child O' Mine (guitarra sozinha)       15/16
-      Fur Elise (piano solo, notas rapidas)         6/9
-      Come As You Are (guitarra com efeito + baixo) 10/16
-      Clocks (arpejo de piano com pedal + banda)    7/16
-      Smoke on the Water (duas notas juntas)        6/12
-Leitura honesta: pega certo quando o riff esta sozinho ou bem na frente (guitarra ou teclado
-tocando uma nota por vez). Erra em arpejo com as notas soando juntas, em notas tocadas ao
-mesmo tempo (acorde, quarta), em instrumento com muito efeito e quando a voz ou outro
-instrumento esta mais forte que o riff. Em trecho de banda cheia, confira no instrumento e
-corrija em "editar" (as notas digitadas valem mais que as detectadas).
+DOIS JEITOS DE DETECTAR (desde 23/11/2026)
+  modelo de notas   so no "pelo link do YouTube": o programa de notas (celular ou computador)
+                    usa um modelo treinado para transcrever notas (basic-pitch, da Spotify;
+                    docs/programa/modelo, ~15 MB, roda dentro do proprio Node) e tira dele a
+                    linha do riff. E o que acerta mais.
+  analise simples   pelo espectro, sem modelo: microfone, audio da guia e arquivo (o app no
+                    navegador nao carrega o modelo) e reserva do programa se o modelo nao abrir.
+QUANTO A DETECCAO ACERTA (medido em 23/11/2026; refazer com: node scripts/avalia/mede.mjs)
+  18 riffs conhecidos baixados do YouTube, comparados com as notas publicadas (224 notas):
+      modelo de notas   179 = 80%      analise simples   148 = 66%
+  12 melodias sinteticas com gabarito exato (103 notas):
+      modelo de notas   101 = 98%      analise simples   100 = 97%
+  Por riff, com o modelo (entre parenteses, a analise simples):
+      Seven Nation Army  7/7 (7)    Clocks 12/16 (7)             Sweet Child O' Mine 16/16 (15)
+      Fur Elise  7/9 (6)            Come As You Are 13/16 (10)   Smoke on the Water  8/12 (6)
+      Day Tripper  7/11 (7)         Sunshine of Your Love 9/10 (6)   Iron Man 13/15 (9)
+      Satisfaction  5/9 (4)         Billie Jean 8/8 (3)          Take On Me 18/24 (18)
+      Crazy Train 12/16 (7)         Nothing Else Matters 5/6 (4) Hedwig's Theme 11/14 (11)
+      The Final Countdown 18/20 (16)   Another One Bites the Dust 4/8 (6)   Under Pressure 6/7 (6)
+  Os 6 primeiros sao o conjunto antigo (modelo 83%), os outros 12 entraram junto com o modelo
+  (78%): o ganho aparece nos dois, entao nao e ajuste feito sob medida para os riffs do teste.
+  "mede.mjs simples" mede a analise simples; "-v" mostra o que foi detectado em cada riff.
+Leitura honesta: em cada 5 notas, 1 ainda sai errada, faltando ou sobrando. Pega melhor quando
+o riff esta sozinho ou bem na frente. Erra mais em notas tocadas ao mesmo tempo (acorde,
+quarta), em instrumento com muito efeito e quando a voz ou outro instrumento esta mais forte
+que o riff. O modelo acha as notas; QUAL linha e o riff (grave ou aguda) e escolha do programa
+(a que tem mais notas claras) e pode cair na errada. Confira no instrumento e corrija em
+"editar" (as notas digitadas valem mais que as detectadas).
+Riff detectado antes de 23/11/2026 fica com a sequencia antiga ate pedir "pelo link do
+YouTube" de novo; o riff que ja vem com o app (Poderoso Nome) troca sozinho.
 Riffs que ja vem prontos: os riffs gravados em docs/dados/biblioteca.json entram na cifra que
 ja esta no aparelho (por trecho, sem trocar a cifra nem trazer de volta riff apagado). E assim
 que o riff do Poderoso Nome (1:48 a 1:54) chega salvo, com a sequencia.
@@ -134,8 +147,8 @@ NO COMPUTADOR
 Sao duas pecas:
   no computador  pasta CIFRAS\notas-youtube (fora deste repositorio, nunca publicada). O
                  programa (servidor.mjs) espera pedidos, baixa o audio (yt-dlp), corta o
-                 trecho (ffmpeg), roda a mesma analise do app (docs/analise.js) e devolve as
-                 notas. A pasta e autossuficiente: leva Node e Python dentro (runtime), entao
+                 trecho (ffmpeg), acha as notas com o modelo de notas (docs/programa/modelo
+                 + docs/analise.js) e devolve a sequencia. A pasta e autossuficiente: leva Node e Python dentro (runtime), entao
                  funciona copiada para qualquer computador com Windows, sem instalar nada.
   no app         Ajustes > "Notas pelo link do YouTube": liga o aparelho ao computador.
 Ligar o computador: INSTALAR NESTE COMPUTADOR.bat (abre sozinho a cada login, minimizado; sem
@@ -208,7 +221,15 @@ ARQUIVOS
   scripts/avalia/            mede a deteccao contra gabaritos (os audios ficam fora do repositorio)
   scripts/teste-termux.sh, teste-cliente.mjs, .github/workflows/testar-termux.yml
                              teste do instalador e do programa dentro de um Termux
-  scripts/csp.mjs            recalcula o hash da CSP
+  scripts/csp.mjs            recalcula o hash da CSP e refaz docs/programa/arquivos.json
+  scripts/avalia/            mede.mjs (acerto da deteccao: riffs reais + sinteticos), casos.mjs
+                             (os 18 riffs e suas notas), avalia.mjs (melodias sinteticas)
+  docs/programa/modelo/      modelo de notas (basic-pitch, Apache-2.0) e o onnxruntime-web
+                             (MIT) que o roda dentro do Node; licencas na propria pasta
+  docs/programa/arquivos.json  resumo sha256 de cada arquivo do programa de notas. Sem o
+                             repositorio ao lado (celular, pasta copiada), o programa confere
+                             esta lista ao abrir e baixa o que mudou, ele proprio incluido:
+                             publicar ja atualiza o celular na proxima vez que "notas" abrir
   scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
   .github/workflows/buscar-cifra.yml   a Action. O app nao usa mais: o Cifra Club barra a
                              busca de cifra por la e o YouTube barra o download do audio.

@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-wKw9/w8zlTLJBkiZhaV8rBZ/dA9LK18Unwe5f06McTM=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-3Ctj67EzCzPVoCNjBtZrjdooEzp+hovdOEFBpdmkye0=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=48499b4c37"></script>
-<script type="module" src="analise.js?v=c758da9151"></script>
+<script type="module" src="analise.js?v=ce2150da5b"></script>
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
@@ -336,7 +336,7 @@ function herdaRiffs(meu,deLa){
   meu.riffs=Array.isArray(meu.riffs)?meu.riffs:[]; const fora=Array.isArray(meu.semRiff)?meu.semRiff:[]; let entrou=false;
   for(const r of deLa.riffs){ if(!r||!(r.fim>r.ini)) continue;
     const ja=meu.riffs.find(x=>Math.abs(x.ini-r.ini)<0.05&&Math.abs(x.fim-r.fim)<0.05);
-    if(ja){ if(!ja.det&&r.det) ja.det=r.det; continue; }
+    if(ja){ if(r.det&&(!ja.det||(r.det.g|0)>(ja.det.g|0))) ja.det=r.det; continue; } // detecção de geração mais nova (modelo de notas) substitui a antiga
     if(fora.includes(chaveRiff(r))) continue;
     meu.riffs.push(JSON.parse(JSON.stringify(r))); entrou=true; }
   if(entrou) meu.riffs.sort((a,b)=>a.ini-b.ini);
@@ -508,7 +508,7 @@ async function releLe(canal,desde){ // devolve {msgs, ultimo}: as mensagens do c
 }
 /* o que chega pelo canal e tratado como texto de fora: so campos conhecidos, com limite de tamanho */
 function limpaDet(d){ if(!d||typeof d!=='object') return null; const s=(x,n)=>typeof x==='string'?x.slice(0,n):'';
-  const det={notas:s(d.notas,600),seq:s(d.seq,8000),baixo:s(d.baixo,8000),acorde:s(d.acorde,12),resumo:s(d.resumo,17000),modo:/celular/.test(s(d.modo,80))?'vídeo do YouTube, analisado no celular':'vídeo do YouTube, analisado no computador',em:s(d.em,40)}; return det.notas?det:null; }
+  const det={notas:s(d.notas,600),seq:s(d.seq,8000),baixo:s(d.baixo,8000),acorde:s(d.acorde,12),resumo:s(d.resumo,17000),modo:/celular/.test(s(d.modo,80))?'vídeo do YouTube, analisado no celular':'vídeo do YouTube, analisado no computador',em:s(d.em,40)}; if(d.g===2) det.g=2; /* g: geração da detecção (2 = modelo de notas) */ return det.notas?det:null; }
 function respostaDe(msgs,id){
   const meus=msgs.filter(m=>m.id===id), e=meus.find(m=>m.t==='erro'); if(e) return {erro:String(e.erro||'não foi possível analisar o trecho').slice(0,240)};
   const ps=meus.filter(m=>m.t==='resultado'&&typeof m.txt==='string');

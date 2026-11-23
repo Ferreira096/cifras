@@ -1,0 +1,16 @@
+Modelo de notas usado pelo programa "notas pelo link do YouTube" (docs/programa/servidor.mjs).
+O app no navegador nao carrega nada desta pasta.
+
+nmp.onnx
+  Basic Pitch (Spotify), versao 0.4.0 do pacote "basic-pitch" do PyPI
+  (basic_pitch/saved_models/icassp_2022/nmp.onnx), sem alteracao.
+  Copyright 2022 Spotify AB. Licenca Apache-2.0: ver LICENSE-basic-pitch.txt e NOTICE-basic-pitch.txt.
+  https://github.com/spotify/basic-pitch
+
+ort.wasm.bundle.min.mjs, ort-wasm-simd-threaded.mjs, ort-wasm-simd-threaded.wasm
+  ONNX Runtime Web 1.31.1 (pacote "onnxruntime-web" do npm, pasta dist/), sem alteracao.
+  Copyright (c) Microsoft Corporation. Licenca MIT: ver LICENSE-onnxruntime.txt.
+  https://github.com/microsoft/onnxruntime
+
+Para trocar de versao: substituir os arquivos, rodar scripts/avalia/mede.mjs (o acerto nao pode
+cair) e node scripts/csp.mjs (refaz docs/programa/arquivos.json).

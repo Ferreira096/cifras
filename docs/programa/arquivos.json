@@ -1,0 +1,26 @@
+{
+ "servidor.mjs": {
+  "sha256": "8cec3c6b8585683fdabf6e409131b52523390c5076221afcb820a3d9bac78984",
+  "bytes": 34796
+ },
+ "analise.mjs": {
+  "sha256": "ce2150da5b7f2eb53b0c2cab1a462c32221724a640cb937d30c0c2c0ac7708f2",
+  "bytes": 22313
+ },
+ "modelo/nmp.onnx": {
+  "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+  "bytes": 230444
+ },
+ "modelo/ort.wasm.bundle.min.mjs": {
+  "sha256": "51bd7168175767324ab0acfcfc4ca94a096a3826e3ebac9ccc4f195eb865f8dd",
+  "bytes": 77024
+ },
+ "modelo/ort-wasm-simd-threaded.mjs": {
+  "sha256": "30ed0b5cd1182ede931fea448afb567d4dc705ec957af09f108a2be5f770dac3",
+  "bytes": 24738
+ },
+ "modelo/ort-wasm-simd-threaded.wasm": {
+  "sha256": "4b884c203b0fa48d057be3332c65513ff85aa3c5bddd6946acc0fab7ecda001d",
+  "bytes": 14848852
+ }
+}

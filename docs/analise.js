@@ -1,4 +1,6 @@
 /* Analise de audio: usada pelo app (navegador) e pelo programa de notas (Node, no computador e no Termux).
+   O programa de notas tira a SEQUENCIA do riff de um modelo de notas (mais abaixo, "modelo de notas");
+   o que segue vale para o app no navegador e como reserva quando o modelo nao carrega.
    Sem dependencias. Como a sequencia de notas do riff e achada (reescrito em 23/11/2026, medido
    contra melodias sinteticas e riffs conhecidos: ver LEIA-ME, "Quanto a deteccao acerta"):
    1. espectro por quadro (janela 4096, passo 512 a 22050 Hz) -> picos com frequencia interpolada;
@@ -119,6 +121,81 @@ function analisarPCM(pcm, sr) {
   if (!seq.length || (baixo.length && comA && harm / comA >= 0.85)) return { notas, acorde, seq: limpa(baixo), baixo: [], dur }; // a linha aguda era so harmonico da grave: o riff e a grave
   return { notas, acorde, seq: limpa(seq), baixo, dur };
 }
+/* ---- modelo de notas (so o programa de notas usa; o app no navegador fica na analise acima) ----
+   A sequencia do riff sai melhor com um modelo treinado para transcrever notas (basic-pitch, da
+   Spotify, licenca Apache-2.0; arquivo docs/programa/modelo/nmp.onnx) do que so com o espectro:
+   medido em 23/11/2026 em 18 riffs conhecidos, 80% das notas contra 66% (ver LEIA-ME). O modelo
+   devolve, a cada ~11,6 ms, a probabilidade de cada tecla do piano estar soando ("nota") e de
+   estar comecando ("ataque"). Daqui sai a linha:
+   1. duas linhas, grave (ate B2) e aguda (C3 para cima), cada uma por Viterbi: silencio e um
+      estado, e trocar de nota custa mais quanto maior o salto (a melodia fica no registro dela em
+      vez de pular para o acompanhamento);
+   2. nota repetida: pico de "ataque" da propria nota dentro dela;
+   3. o riff e a linha com mais notas claras (riff de guitarra/baixo mora na grave; um baixo de
+      duas notas longas perde para a melodia).
+   criaModelo(ort, bytes): ort = onnxruntime-web (WASM), bytes = o nmp.onnx. Devolve posteriores(pcm). */
+const PM = { corte: 48, topo: 96, sil: 0.2, lambda: 0.3, mu: 0.12, teto: 12, atq: 0.8, minQ: 7, fraca: 0.45, lim: 0.3 };
+const BP = { N: 43844, SOBRA: 30, NB: 88, M0: 21, NOTA: 'StatefulPartitionedCall:1', ATAQUE: 'StatefulPartitionedCall:2' };
+async function criaModelo(ort, bytes) {
+  const sess = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
+  if (!sess.outputNames.includes(BP.NOTA) || !sess.outputNames.includes(BP.ATAQUE)) throw new Error('modelo de notas com saidas diferentes do esperado');
+  const entrada = sess.inputNames[0], PASSO = BP.N - BP.SOBRA * 256, UTIL = 172 - BP.SOBRA, NB = BP.NB; // janelas de 2 s, sobrepostas em 30 quadros
+  return async function posteriores(pcm) { // pcm a 22050 Hz
+    const x = new Float32Array(pcm.length + BP.SOBRA * 128); x.set(pcm, BP.SOBRA * 128);
+    const nj = Math.max(1, Math.ceil(x.length / PASSO)), T = Math.min(nj * UTIL, Math.floor(pcm.length * 86 / 22050));
+    const nota = new Float32Array(T * NB), ataque = new Float32Array(T * NB), buf = new Float32Array(BP.N);
+    for (let j = 0; j < nj; j++) {
+      buf.fill(0); buf.set(x.subarray(j * PASSO, Math.min(x.length, j * PASSO + BP.N)));
+      const out = await sess.run({ [entrada]: new ort.Tensor('float32', buf, [1, BP.N, 1]) }), n = out[BP.NOTA].data, a = out[BP.ATAQUE].data;
+      for (let q = 0; q < UTIL; q++) { const t = j * UTIL + q; if (t >= T) break; const o = (q + BP.SOBRA / 2) * NB; nota.set(n.subarray(o, o + NB), t * NB); ataque.set(a.subarray(o, o + NB), t * NB); }
+    }
+    return { T, dt: PASSO / UTIL / 22050, nota, ataque };
+  };
+}
+function linhaDoModelo(post, P = PM) {
+  const { T, dt, nota, ataque } = post, NB = BP.NB, M0m = BP.M0; if (T < 8) return { seq: [], baixo: [] };
+  const caminho = (a, b) => {
+    const n = b - a + 2, SIL = n - 1, ant = new Float32Array(n), cur = new Float32Array(n), de = new Int16Array(T * n);
+    const em = (t, j) => j === SIL ? P.sil : nota[t * NB + a - M0m + j];
+    const custo = new Float32Array(n); for (let d = 1; d < n; d++) custo[d] = P.lambda + P.mu * Math.min(d, P.teto);
+    for (let j = 0; j < n; j++) ant[j] = em(0, j);
+    for (let t = 1; t < T; t++) {
+      for (let j = 0; j < n; j++) {
+        let mv = ant[j], mi = j;
+        if (j === SIL) { for (let i = 0; i < SIL; i++) { const v = ant[i] - P.lambda; if (v > mv) { mv = v; mi = i; } } }
+        else { const vs = ant[SIL] - P.lambda; if (vs > mv) { mv = vs; mi = SIL; } for (let i = 0; i < SIL; i++) { const v = ant[i] - custo[i > j ? i - j : j - i]; if (v > mv) { mv = v; mi = i; } } }
+        cur[j] = mv + em(t, j); de[t * n + j] = mi;
+      }
+      ant.set(cur);
+    }
+    let j = 0; for (let k = 1; k < n; k++) if (ant[k] > ant[j]) j = k;
+    const est = new Int16Array(T); for (let t = T - 1; t >= 0; t--) { est[t] = j === SIL ? -1 : a + j; j = de[t * n + j]; }
+    return est;
+  };
+  const notasDe = (est) => {
+    const out = []; let i = 0;
+    while (i < T) { if (est[i] < 0) { i++; continue; } let j = i; while (j < T && est[j] === est[i]) j++; out.push({ midi: est[i], a: i, b: j }); i = j; }
+    const div = [];
+    for (const n of out) { // nota repetida: pico de "ataque" da propria nota dentro dela
+      let ini = n.a; const c = n.midi - M0m;
+      for (let t = n.a + 4; t < n.b - 2; t++) { const v = ataque[t * NB + c]; if (v >= P.atq && v >= ataque[(t - 1) * NB + c] && v > ataque[(t + 1) * NB + c] && t - ini >= 6) { div.push({ midi: n.midi, a: ini, b: t }); ini = t; } }
+      div.push({ midi: n.midi, a: ini, b: n.b });
+    }
+    return div.filter((n) => n.b - n.a >= P.minQ).map((n) => { let s = 0; for (let t = n.a; t < n.b; t++) s += nota[t * NB + n.midi - M0m]; return { midi: n.midi, ini: n.a * dt, dur: (n.b - n.a) * dt, forca: s / (n.b - n.a) }; });
+  };
+  const limpa = (s) => { if (s.length < 3) return s; const f = s.map((x) => x.forca).sort((x, y) => x - y), med = f[Math.floor(f.length / 2)]; return s.filter((x) => x.forca >= med * P.fraca); };
+  const grave = limpa(notasDe(caminho(28, P.corte - 1))), aguda = limpa(notasDe(caminho(P.corte, P.topo)));
+  const claras = (s) => s.reduce((a, x) => a + Math.max(0, x.forca - P.lim), 0);
+  return claras(grave) > claras(aguda) ? { seq: grave, baixo: [], outra: aguda, grave: true } : { seq: aguda, baixo: grave };
+}
+// analise completa com o modelo: as notas e o acorde saem do espectro (como antes); a sequencia, do modelo
+async function analisarComModelo(pcm, sr, posteriores) {
+  if (sr !== 22050) throw new Error('o modelo de notas espera audio a 22050 Hz');
+  const d = analisarPCM(pcm, sr), l = linhaDoModelo(await posteriores(pcm));
+  if (!l.seq.length) return d; // o modelo nao ouviu nota: fica a sequencia do espectro
+  return { ...d, seq: l.seq, baixo: l.baixo, motor: 'modelo' };
+}
+
 function textoDeteccao(d){
   const notas=d.notas.map(n=>n.nome).join(' ');
   const escreve=(l)=>(l||[]).map(s=>nomeMidi(s.midi)+'('+s.dur.toFixed(1)+'s)').join(' ');
@@ -184,5 +261,5 @@ function sequenciaNomes(det,n,bemol){
   return seq.map(s=>nomePc(s.midi+n,bemol));
 }
 
-export { analisarPCM, textoDeteccao, nomeMidi, fft, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };
+export { analisarPCM, criaModelo, linhaDoModelo, analisarComModelo, textoDeteccao, nomeMidi, fft, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };
 globalThis.Analise = { analisarPCM, textoDeteccao, nomeMidi, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };

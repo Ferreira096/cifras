@@ -34,6 +34,20 @@ tail -n 1 $T/teste.txt
 grep -q '"notas": "A4' $T/teste.txt || { cat $T/teste.txt; falhou "esperava La 4 (A4) como nota principal"; }
 grep -q 'analisado no celular' $T/teste.txt || falhou "o programa nao se reconheceu como Termux"
 ok "ffmpeg + analise devolveram A4; origem = celular"
+grep -q 'deteccao: modelo de notas' $T/teste.txt || { cat $T/teste.txt; falhou "o modelo de notas nao carregou no Termux (caiu na analise simples)"; }
+grep -q '"seq": "A4' $T/teste.txt || { cat $T/teste.txt; falhou "o modelo de notas nao devolveu A4 como sequencia"; }
+ok "modelo de notas carregou (onnxruntime-web em WASM) e devolveu A4"
+
+echo "=== 2b. o programa se atualiza sozinho ao abrir ==="
+echo "// linha a mais, para o arquivo ficar diferente do publicado" >> "$HOME/cifras-notas/servidor.mjs"
+rm -f "$HOME/cifras-notas/modelo/nmp.onnx"
+notas --atualizar > $T/atualiza.txt 2>&1 || { cat $T/atualiza.txt; falhou "atualizar"; }
+sed 's/^/    | /' $T/atualiza.txt
+grep -q 'atualizado: servidor.mjs' $T/atualiza.txt || falhou "nao trocou o proprio programa"
+grep -q 'atualizado: modelo/nmp.onnx' $T/atualiza.txt || falhou "nao baixou de novo o arquivo que faltava"
+grep -q 'deteccao: modelo de notas' $T/atualiza.txt || falhou "depois de atualizar, o modelo nao carregou"
+! grep -q 'linha a mais' "$HOME/cifras-notas/servidor.mjs" || falhou "o programa antigo continuou na pasta"
+ok "trocou o proprio programa, baixou o que faltava e reabriu na versao nova"
 
 echo "=== 3. pedido pelo canal, como o app faz ==="
 curl -fsSL "$RAW/scripts/teste-cliente.mjs" -o $T/cliente.mjs

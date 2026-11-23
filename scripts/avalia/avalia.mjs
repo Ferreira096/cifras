@@ -1,7 +1,8 @@
-// node avalia.mjs [caminho do analise.js]  -> mede a deteccao da SEQUENCIA de notas contra gabaritos
-// Parte 1: audio sintetico (gabarito exato). Parte 2 (avalia-real.mjs): riffs conhecidos do YouTube.
+// node avalia.mjs  (ANALISE=caminho de outro analise.js, para comparar)  -> mede a deteccao da SEQUENCIA de notas contra gabaritos
+// Audio sintetico (gabarito exato), so com a analise pelo espectro. O teste completo, com o modelo de
+// notas e os riffs conhecidos do YouTube, e o mede.mjs (que importa as melodias daqui).
 import { pathToFileURL } from 'node:url';
-const ARQ = process.argv[2] || new URL('../../docs/analise.js', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const ARQ = process.env.ANALISE || new URL('../../docs/analise.js', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const A = await import(pathToFileURL(ARQ).href);
 const SR = 22050;
 const PC = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
@@ -46,7 +47,7 @@ export const detecta = (pcm) => { try { const d = A.analisarPCM(pcm, SR); if (pr
 const nome = (m) => A.nomeMidi(m);
 
 const T = (s, d) => s.split(' ').map((n) => [n, d]);
-const CASOS = [
+export const CASOS = [
   ['piano solo, notas de 0,40 s', T('E4 G4 A4 B4 A4 G4 E4 D4', 0.4), 'piano'],
   ['piano solo, notas de 0,25 s', T('C5 D5 E5 G5 E5 D5 C5 A4 G4 A4 C5 D5', 0.25), 'piano'],
   ['piano solo, notas de 0,15 s (rapido)', T('E5 D#5 E5 D#5 E5 B4 D5 C5 A4', 0.15), 'piano'],

@@ -7,12 +7,13 @@
    "fim": 114,
    "det": {
     "notas": "E2 B3 F#5 D#6 C#4 G#4",
-    "seq": "B3(0.2s) F#3(0.7s) F#3(0.2s) F6(0.2s) G#3(1.8s) G#3(0.4s) D#5(0.4s) F#5(0.4s) C#4(0.5s) D#4(0.3s) B4(0.4s) G#4(0.2s)",
-    "baixo": "D#2(0.2s) B2(0.5s) D#2(0.3s) E2(0.1s) F#2(0.3s) E2(0.5s) B2(0.3s) E2(1.3s) G#2(0.2s) G#2(0.1s) B2(0.4s) F#2(0.1s) E2(0.6s) B2(0.1s) E2(0.5s)",
+    "seq": "F#3(1.5s) B3(1.0s) G#3(0.6s) B3(0.1s) G#3(0.4s) D#4(0.4s) F#4(0.4s) C#4(0.5s) D#4(0.3s) B3(0.8s)",
+    "baixo": "D#2(0.4s) B2(0.2s) D#2(0.4s) E2(0.1s) F#2(0.4s) E2(1.8s) E1(0.2s) E2(2.3s)",
     "acorde": "E",
-    "resumo": "Notas: E2 B3 F#5 D#6 C#4 G#4  ·  acorde provavel: E\nRiff: B3(0.2s) F#3(0.7s) F#3(0.2s) F6(0.2s) G#3(1.8s) G#3(0.4s) D#5(0.4s) F#5(0.4s) C#4(0.5s) D#4(0.3s) B4(0.4s) G#4(0.2s)\nBaixo: D#2(0.2s) B2(0.5s) D#2(0.3s) E2(0.1s) F#2(0.3s) E2(0.5s) B2(0.3s) E2(1.3s) G#2(0.2s) G#2(0.1s) B2(0.4s) F#2(0.1s) E2(0.6s) B2(0.1s) E2(0.5s)",
+    "resumo": "Notas: E2 B3 F#5 D#6 C#4 G#4  ·  acorde provavel: E\nRiff: F#3(1.5s) B3(1.0s) G#3(0.6s) B3(0.1s) G#3(0.4s) D#4(0.4s) F#4(0.4s) C#4(0.5s) D#4(0.3s) B3(0.8s)\nBaixo: D#2(0.4s) B2(0.2s) D#2(0.4s) E2(0.1s) F#2(0.4s) E2(1.8s) E1(0.2s) E2(2.3s)",
     "modo": "vídeo do YouTube, analisado no computador",
-    "em": "23/11/2026"
+    "em": "23/11/2026",
+    "g": 2
    }
   }
  ]

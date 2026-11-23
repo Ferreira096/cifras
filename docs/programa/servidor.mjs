@@ -34,13 +34,22 @@
  *       --desinstalar    tira do login e fecha o programa que estiver aberto
  *       --parar          fecha o programa que estiver aberto
  *       --teste <video> <ini> <fim>   analisa um trecho sem usar o canal
+ *       --atualizar      so traz os arquivos atuais do site e diz a versao
+ *
+ * A sequencia de notas sai de um modelo de notas (pasta modelo/: basic-pitch em ONNX, rodando no
+ * proprio Node por onnxruntime-web/WASM; ver docs/analise.js). Se o modelo nao carregar, o
+ * programa segue com a analise simples, pelo espectro.
+ *
+ * Atualizacao: com o repositorio ao lado (computador de casa), os arquivos sao copiados dele ao
+ * abrir. Sem o repositorio (celular, pasta copiada para outro computador), o programa confere a
+ * lista docs/programa/arquivos.json do site ao abrir e baixa o que mudou, ele proprio incluido.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { execFile, spawn } from 'node:child_process';
+import { execFile, spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
@@ -50,8 +59,12 @@ const WIN = process.platform === 'win32' && !process.env.CIFRAS_GENERICO; // CIF
 const TERMUX = process.platform === 'android' || /com\.termux/.test(process.env.PREFIX || '') || process.env.CIFRAS_GENERICO === 'termux';
 const PY = process.env.CIFRAS_PYTHON || (WIN ? path.join(AQUI, 'runtime', 'python', 'python.exe') : 'python');
 const REINSTALE = 'Rode de novo o comando de instalacao (app Minhas Cifras > Ajustes > Rodar neste celular).';
-const ARQ_REPO = path.join(AQUI, '..', 'github', 'docs', 'analise.js'); // a analise do app, quando o repositorio esta ao lado
-const ARQ_ANALISE = path.join(AQUI, 'analise.mjs');                     // copia que viaja com a pasta
+const REPO_DOCS = path.join(AQUI, '..', 'github', 'docs');
+const ARQ_REPO = path.join(REPO_DOCS, 'analise.js');   // a analise do app, quando o repositorio esta ao lado
+const ARQ_ANALISE = path.join(AQUI, 'analise.mjs');    // copia que viaja com a pasta
+const PASTA_MODELO = path.join(AQUI, 'modelo');
+// arquivos que o programa usa alem dele mesmo: nome na pasta -> caminho no site/repositorio (dentro de docs)
+const ARQUIVOS = { 'analise.mjs': 'analise.js', 'modelo/nmp.onnx': 'programa/modelo/nmp.onnx', 'modelo/ort.wasm.bundle.min.mjs': 'programa/modelo/ort.wasm.bundle.min.mjs', 'modelo/ort-wasm-simd-threaded.mjs': 'programa/modelo/ort-wasm-simd-threaded.mjs', 'modelo/ort-wasm-simd-threaded.wasm': 'programa/modelo/ort-wasm-simd-threaded.wasm' };
 const PASTA_AUDIO = path.join(AQUI, 'cache');
 const DADOS = process.env.CIFRAS_DADOS || AQUI; // so para testes: guarda codigo e estado em outra pasta
 const F_CONFIG = path.join(DADOS, 'config.json');
@@ -151,17 +164,50 @@ function gravaEstado() {
 
 /* ---------------- audio e analise ---------------- */
 let FFMPEG = '', Analise = null, versaoAnalise = '';
+let modelo = null, semModelo = ''; // modelo de notas carregado (funcao posteriores) ou o motivo de nao ter carregado
+const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+const shaDe = (arq) => { try { return sha256(fs.readFileSync(arq)); } catch (e) { return ''; } };
+/* Traz os arquivos atuais. Devolve true se o proprio programa foi trocado (quem chamou reabre). */
+async function atualizarArquivos() {
+  if (fs.existsSync(ARQ_REPO)) { // repositorio ao lado: copia dele (o servidor.mjs quem copia e o LIGAR.bat)
+    for (const [nome, de] of Object.entries(ARQUIVOS)) {
+      try { const o = path.join(REPO_DOCS, de), d = path.join(AQUI, nome); if (!fs.existsSync(o)) continue; const novo = fs.readFileSync(o); if (!fs.existsSync(d) || !novo.equals(fs.readFileSync(d))) { fs.mkdirSync(path.dirname(d), { recursive: true }); fs.writeFileSync(d, novo); } } catch (e) {}
+    }
+    return false;
+  }
+  if (process.env.CIFRAS_SEM_ATUALIZAR) return false;
+  let lista; // ?t=: fura a copia de ate 10 min que o site guarda
+  try { const r = await fetch(SITE + 'programa/arquivos.json?t=' + Date.now(), { signal: AbortSignal.timeout(8000), cache: 'no-store' }); if (!r.ok) return false; lista = await r.json(); } catch (e) { return false; } // sem internet: segue com o que tem
+  let trocouPrograma = false;
+  for (const [nome, de] of Object.entries({ 'servidor.mjs': 'programa/servidor.mjs', ...ARQUIVOS })) { // so os nomes conhecidos; da lista vem apenas o resumo (sha256) e o tamanho
+    const x = lista && lista[nome]; if (!x || !/^[0-9a-f]{64}$/.test(x.sha256 || '')) continue;
+    const dest = path.join(AQUI, nome); if (shaDe(dest) === x.sha256) continue;
+    try {
+      if (x.bytes > 2e6) console.log('  baixando ' + nome + ' (' + (x.bytes / 1e6).toFixed(0) + ' MB, so desta vez)...');
+      const r = await fetch(SITE + de + '?t=' + Date.now(), { signal: AbortSignal.timeout(x.bytes > 2e6 ? 600000 : 30000), cache: 'no-store' }); if (!r.ok) continue;
+      const novo = Buffer.from(await r.arrayBuffer()); if (sha256(novo) !== x.sha256) continue; // veio pela metade, ou o site ainda entrega a copia antiga: fica para a proxima
+      fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest + '.novo', novo); fs.renameSync(dest + '.novo', dest);
+      console.log('  (atualizado: ' + nome + ')'); if (nome === 'servidor.mjs') trocouPrograma = true;
+    } catch (e) {}
+  }
+  return trocouPrograma;
+}
+async function carregarModelo() {
+  try {
+    if (typeof Analise.criaModelo !== 'function') throw new Error('analise sem suporte ao modelo');
+    const m = await import(pathToFileURL(path.join(PASTA_MODELO, 'ort.wasm.bundle.min.mjs')).href), ort = m.default && m.default.InferenceSession ? m.default : m;
+    ort.env.wasm.numThreads = 1; // um nucleo basta (2 s de audio em ~0,1 s no computador) e evita depender de threads no celular
+    const posteriores = await Analise.criaModelo(ort, new Uint8Array(fs.readFileSync(path.join(PASTA_MODELO, 'nmp.onnx'))));
+    const p = await posteriores(new Float32Array(22050)); if (!(p.T > 0)) throw new Error('modelo nao respondeu'); // prova: 1 s de silencio
+    modelo = posteriores; semModelo = '';
+  } catch (e) { modelo = null; semModelo = String((e && e.message) || e).split('\n')[0].slice(0, 160); }
+}
 let versaoPrograma = ''; try { versaoPrograma = crypto.createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex').slice(0, 8); } catch (e) {}
 async function preparar() {
   if (WIN && !fs.existsSync(PY)) throw new Error('pasta incompleta: falta runtime\\python. Copie a pasta notas-youtube inteira.');
-  try { // repositorio ao lado: traz a versao atual da analise para a copia da pasta
-    if (fs.existsSync(ARQ_REPO)) { const novo = fs.readFileSync(ARQ_REPO); if (!fs.existsSync(ARQ_ANALISE) || !novo.equals(fs.readFileSync(ARQ_ANALISE))) fs.writeFileSync(ARQ_ANALISE, novo); }
-  } catch (e) {}
-  if (!WIN) { // celular: a analise melhora no site; traz a versao atual ao abrir, se a internet deixar
-    try {
-      const r = await fetch(SITE + 'analise.js?t=' + Date.now(), { signal: AbortSignal.timeout(8000), cache: 'no-store' }); // ?t=: fura a copia de ate 10 min que o site guarda
-      if (r.ok) { const novo = Buffer.from(await r.arrayBuffer()); if (novo.length > 4000 && novo.includes('function analisarPCM') && !(fs.existsSync(ARQ_ANALISE) && novo.equals(fs.readFileSync(ARQ_ANALISE)))) { fs.writeFileSync(ARQ_ANALISE, novo); console.log('  (analise atualizada pelo site)'); } }
-    } catch (e) {}
+  if (await atualizarArquivos() && !process.env.CIFRAS_ATUALIZADO) { // o proprio programa mudou: reabre ja na versao nova
+    const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), ...process.argv.slice(2)], { stdio: 'inherit', env: { ...process.env, CIFRAS_ATUALIZADO: '1' } });
+    process.exit(r.status == null ? 1 : r.status);
   }
   if (!fs.existsSync(ARQ_ANALISE)) throw new Error('pasta incompleta: falta analise.mjs');
   if (WIN) {
@@ -174,6 +220,7 @@ async function preparar() {
   }
   Analise = await import(pathToFileURL(ARQ_ANALISE).href);
   versaoAnalise = crypto.createHash('sha256').update(fs.readFileSync(ARQ_ANALISE)).digest('hex').slice(0, 8);
+  await carregarModelo();
   fs.mkdirSync(PASTA_AUDIO, { recursive: true });
 }
 const audioGuardado = (video) => { try { const f = fs.readdirSync(PASTA_AUDIO).find((n) => n.startsWith(video + '.') && !/\.(part|ytdl|tmp)$/.test(n) && !n.includes('.trecho')); return f ? path.join(PASTA_AUDIO, f) : ''; } catch (e) { return ''; } };
@@ -212,7 +259,7 @@ async function baixarComReparo(video, ini, fim) {
   }
 }
 async function analisar(video, ini, fim) {
-  const chave = `${video}:${ini.toFixed(2)}-${fim.toFixed(2)}:${versaoAnalise}`;
+  const chave = `${video}:${ini.toFixed(2)}-${fim.toFixed(2)}:${versaoAnalise}${modelo ? ':m' : ''}`;
   if (estado.resultados[chave]) return { det: estado.resultados[chave], daMemoria: true };
   const hoje = new Date().toISOString().slice(0, 10);
   if (estado.dia.data !== hoje) estado.dia = { data: hoje, n: 0 };
@@ -225,9 +272,12 @@ async function analisar(video, ini, fim) {
   const buf = ff.stdout;
   const pcm = new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length - (buf.length % 4)));
   if (pcm.length < 22050 * 0.5) throw new Error('o video termina antes desse trecho');
-  const d = Analise.analisarPCM(pcm, 22050), tx = Analise.textoDeteccao(d);
+  let d = null;
+  if (modelo) { try { d = await Analise.analisarComModelo(pcm, 22050, modelo); } catch (e) { diz('o modelo de notas falhou neste trecho (' + String((e && e.message) || e).slice(0, 120) + '); usando a analise simples'); } }
+  if (!d) d = Analise.analisarPCM(pcm, 22050);
+  const tx = Analise.textoDeteccao(d);
   if (!tx.notas) throw new Error('nao ouvi notas nesse trecho (silencio ou so percussao)');
-  const det = { notas: tx.notas, seq: tx.seq, baixo: tx.baixo, acorde: d.acorde, resumo: tx.resumo, modo: MODO, em: new Date().toLocaleDateString('pt-BR') };
+  const det = { notas: tx.notas, seq: tx.seq, baixo: tx.baixo, acorde: d.acorde, resumo: tx.resumo, modo: MODO, em: new Date().toLocaleDateString('pt-BR'), g: d.motor === 'modelo' ? 2 : 1 }; // g: geracao da deteccao (2 = modelo de notas)
   estado.resultados[chave] = det; gravaEstado(); limparAudios();
   return { det, daMemoria: false };
 }
@@ -286,7 +336,7 @@ function trata(linha) {
   const idade = Date.now() - (+j.time || 0) * 1000;
   if ((m.t === 'ping' || m.t === 'pedido') && !estado.pareado) { estado.pareado = true; gravaEstado(); }
   if (m.t === 'ola') { if (m.m !== MID) { viPar(m.m, Date.now() - idade); if (!m.r && idade < 60000) ola(true); } return; }
-  if (m.t === 'ping') { if (idade < 90000) publica({ t: 'pong', id: m.id, m: MID, v: versaoPrograma, va: versaoAnalise, onde: TERMUX ? 'celular' : 'computador' }); return; } // v/va: da para conferir de longe se atualizou
+  if (m.t === 'ping') { if (idade < 90000) publica({ t: 'pong', id: m.id, m: MID, v: versaoPrograma, va: versaoAnalise, mo: modelo ? 1 : 0, onde: TERMUX ? 'celular' : 'computador' }); return; } // v/va: da para conferir de longe se atualizou
   if (m.t === 'recebido' || m.t === 'resultado' || m.t === 'erro') { if (!meus.has(m.id)) { alheios.add(m.id); viPar(m.m, Date.now() - idade); } return; }
   if (m.t !== 'pedido') return;
   if (estado.feitos[m.id] || alheios.has(m.id)) return;
@@ -398,10 +448,13 @@ try {
   }
   try { if (fs.statSync(F_REGISTRO).size > 1e6) fs.rmSync(F_REGISTRO); } catch (e) {}
   await preparar();
+  const deteccao = modelo ? 'modelo de notas' : 'analise simples (o modelo de notas nao carregou: ' + semModelo + ')';
+  if (args[0] === '--atualizar') { console.log('Programa ' + versaoPrograma + ', analise ' + versaoAnalise + ', deteccao: ' + deteccao); process.exit(0); }
   if (args[0] === '--teste') {
     const [, video, ini, fim] = args, t0 = Date.now();
     const { det, daMemoria } = await analisar(video, +ini, +fim);
     console.log(JSON.stringify(det, null, 1));
+    console.log('deteccao: ' + deteccao);
     console.log('notas base:', Analise.notasBase(det, 0, false).join(' '), '|', ((Date.now() - t0) / 1000).toFixed(1) + ' s', daMemoria ? '(da memoria)' : '');
     process.exit(0);
   }
@@ -431,6 +484,7 @@ try {
     console.log('  Ligar o app de novo: notas --parear     Parar: Ctrl+C ou "Exit" na notificacao');
     console.log('  Liga sozinho com o celular: ' + (fs.existsSync(F_LOGIN) ? 'sim' : 'nao (notas --instalar, com o Termux:Boot)'));
   }
+  console.log('  Deteccao: ' + deteccao);
   console.log('');
   setInterval(() => ola(false), 6 * 3600e3).unref();
   await escutar();

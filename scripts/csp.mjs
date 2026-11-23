@@ -9,6 +9,8 @@
  *    hash SHA-256 do conteudo. Hash velho = pagina em branco.
  * 3. Carimba docs/sw.js: nome do cache e lista de arquivos, para o app instalado trocar tudo
  *    junto.
+ * 4. Gera docs/programa/arquivos.json (resumo sha256 de cada arquivo do programa de notas), por
+ *    onde o programa no celular descobre o que mudou e se atualiza ao abrir.
  */
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -68,3 +70,16 @@ grava('sw.js', sw);
 console.log('modulos:', MODULOS.map((m) => m + '?v=' + versoes[m]).join('  '));
 console.log('CSP:', hashes.join(' '));
 console.log('service worker: cifras-' + carimbo);
+
+// 4. lista dos arquivos do programa de notas (docs/programa/arquivos.json): o programa, quando nao
+//    tem o repositorio ao lado (celular, pasta copiada), confere por ela o que mudou e baixa.
+//    Nome = como o arquivo se chama na pasta do programa; o caminho no site esta no servidor.mjs.
+const DO_PROGRAMA = { 'servidor.mjs': 'programa/servidor.mjs', 'analise.mjs': 'analise.js', 'modelo/nmp.onnx': 'programa/modelo/nmp.onnx', 'modelo/ort.wasm.bundle.min.mjs': 'programa/modelo/ort.wasm.bundle.min.mjs', 'modelo/ort-wasm-simd-threaded.mjs': 'programa/modelo/ort-wasm-simd-threaded.mjs', 'modelo/ort-wasm-simd-threaded.wasm': 'programa/modelo/ort-wasm-simd-threaded.wasm' };
+const lista = {};
+for (const [nome, de] of Object.entries(DO_PROGRAMA)) {
+  let b = fs.readFileSync(new URL(de, DOCS));
+  if (/\.(mjs|js)$/.test(de)) b = Buffer.from(b.toString('utf8').replace(/\r\n/g, '\n'), 'utf8'); // texto: sempre LF, como o GitHub serve
+  lista[nome] = { sha256: crypto.createHash('sha256').update(b).digest('hex'), bytes: b.length };
+}
+grava('programa/arquivos.json', JSON.stringify(lista, null, 1) + '\n');
+console.log('programa:', Object.entries(lista).map(([n, x]) => n + ' ' + x.sha256.slice(0, 8)).join('  '));

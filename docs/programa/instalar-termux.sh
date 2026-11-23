@@ -6,9 +6,10 @@
 #   curl -fsSL https://ferreira096.github.io/cifras/programa/instalar-termux.sh | CIFRAS_CODIGO=cifras-xxxx-xxxx-xxxx-xxxx bash
 #
 # O que faz: atualiza os pacotes do Termux; instala Node, Python e ffmpeg; instala o yt-dlp;
-# baixa servidor.mjs e analise.js deste site para ~/cifras-notas; cria o comando "notas";
-# testa um trecho e ja deixa atendendo. Nao pede senha, conta nem permissao de armazenamento.
-# Rodar de novo atualiza tudo.
+# baixa o programa deste site para ~/cifras-notas (servidor.mjs, analise.js e o modelo de notas,
+# ~15 MB); cria o comando "notas"; testa um trecho e ja deixa atendendo. Nao pede senha, conta nem
+# permissao de armazenamento. Rodar de novo atualiza tudo; depois de instalado, o proprio
+# programa confere o site ao abrir e se atualiza sozinho.
 #
 #   CIFRAS_CODIGO     codigo que o app ja usa: o programa nasce ligado ao app (e ao computador,
 #                     se ele usar o mesmo codigo). Sem ele, o programa cria um codigo e abre o
@@ -59,6 +60,9 @@ grep -q "notas pelo link do YouTube" "$PASTA/servidor.mjs.novo" || { echo "O arq
 if [ -f "$PASTA/servidor.mjs" ]; then (cd "$PASTA" && node servidor.mjs --parar >/dev/null 2>&1 </dev/null) || true; fi   # versao antiga aberta: fecha
 mv "$PASTA/servidor.mjs.novo" "$PASTA/servidor.mjs"
 mv "$PASTA/analise.mjs.novo" "$PASTA/analise.mjs"
+# o resto (modelo de notas, ~15 MB) o proprio programa baixa, conferindo arquivo por arquivo
+echo "Baixando o modelo de notas (uns 15 MB, so desta vez)..."
+(cd "$PASTA" && node servidor.mjs --atualizar </dev/null) || { echo "O programa nao abriu depois de baixado (mensagem acima). Tente de novo daqui a pouco."; exit 1; }
 
 # comando "notas" e atalho para o Termux:Widget (opcional)
 cat > "$PREFIX/bin/notas" <<EOF
