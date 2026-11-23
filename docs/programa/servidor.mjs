@@ -151,6 +151,7 @@ function gravaEstado() {
 
 /* ---------------- audio e analise ---------------- */
 let FFMPEG = '', Analise = null, versaoAnalise = '';
+let versaoPrograma = ''; try { versaoPrograma = crypto.createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex').slice(0, 8); } catch (e) {}
 async function preparar() {
   if (WIN && !fs.existsSync(PY)) throw new Error('pasta incompleta: falta runtime\\python. Copie a pasta notas-youtube inteira.');
   try { // repositorio ao lado: traz a versao atual da analise para a copia da pasta
@@ -158,7 +159,7 @@ async function preparar() {
   } catch (e) {}
   if (!WIN) { // celular: a analise melhora no site; traz a versao atual ao abrir, se a internet deixar
     try {
-      const r = await fetch(SITE + 'analise.js', { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+      const r = await fetch(SITE + 'analise.js?t=' + Date.now(), { signal: AbortSignal.timeout(8000), cache: 'no-store' }); // ?t=: fura a copia de ate 10 min que o site guarda
       if (r.ok) { const novo = Buffer.from(await r.arrayBuffer()); if (novo.length > 4000 && novo.includes('function analisarPCM') && !(fs.existsSync(ARQ_ANALISE) && novo.equals(fs.readFileSync(ARQ_ANALISE)))) { fs.writeFileSync(ARQ_ANALISE, novo); console.log('  (analise atualizada pelo site)'); } }
     } catch (e) {}
   }
@@ -285,7 +286,7 @@ function trata(linha) {
   const idade = Date.now() - (+j.time || 0) * 1000;
   if ((m.t === 'ping' || m.t === 'pedido') && !estado.pareado) { estado.pareado = true; gravaEstado(); }
   if (m.t === 'ola') { if (m.m !== MID) { viPar(m.m, Date.now() - idade); if (!m.r && idade < 60000) ola(true); } return; }
-  if (m.t === 'ping') { if (idade < 90000) publica({ t: 'pong', id: m.id }); return; }
+  if (m.t === 'ping') { if (idade < 90000) publica({ t: 'pong', id: m.id, m: MID, v: versaoPrograma, va: versaoAnalise, onde: TERMUX ? 'celular' : 'computador' }); return; } // v/va: da para conferir de longe se atualizou
   if (m.t === 'recebido' || m.t === 'resultado' || m.t === 'erro') { if (!meus.has(m.id)) { alheios.add(m.id); viPar(m.m, Date.now() - idade); } return; }
   if (m.t !== 'pedido') return;
   if (estado.feitos[m.id] || alheios.has(m.id)) return;

@@ -51,8 +51,10 @@ python -m pip install -q -U yt-dlp </dev/null
 echo
 echo "== 3/4  Baixando o programa =="
 mkdir -p "$PASTA"
-curl -fsSL "$SITE/programa/servidor.mjs" -o "$PASTA/servidor.mjs.novo" </dev/null
-curl -fsSL "$SITE/analise.js" -o "$PASTA/analise.mjs.novo" </dev/null
+# "?t=...": o site guarda copia dos arquivos por ate 10 minutos; o numero no endereco pede a versao de agora
+AGORA="$(date +%s)"
+curl -fsSL "$SITE/programa/servidor.mjs?t=$AGORA" -o "$PASTA/servidor.mjs.novo" </dev/null
+curl -fsSL "$SITE/analise.js?t=$AGORA" -o "$PASTA/analise.mjs.novo" </dev/null
 grep -q "notas pelo link do YouTube" "$PASTA/servidor.mjs.novo" || { echo "O arquivo do programa veio estranho. Tente de novo daqui a pouco."; exit 1; }
 if [ -f "$PASTA/servidor.mjs" ]; then (cd "$PASTA" && node servidor.mjs --parar >/dev/null 2>&1 </dev/null) || true; fi   # versao antiga aberta: fecha
 mv "$PASTA/servidor.mjs.novo" "$PASTA/servidor.mjs"
