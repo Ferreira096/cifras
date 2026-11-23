@@ -102,8 +102,15 @@ NO PROPRIO CELULAR (ANDROID), SEM COMPUTADOR
   "notas --codigo <codigo do computador>" = celular e computador atendem com o mesmo codigo.
   "notas --parar", "notas --parear", "notas --desinstalar" como no computador.
   Com a tela apagada o Android congela o programa; ao voltar ele percebe e reconecta na hora.
-  Nao foi testado num Android de verdade: o caminho do celular foi exercitado no Windows com
-  Python e ffmpeg de fora (CIFRAS_GENERICO=termux). Primeira instalacao: conferir.
+  O comando que o app copia ja leva o codigo do aparelho (CIFRAS_CODIGO): o programa nasce
+  ligado ao app e, se um computador usa o mesmo codigo, os dois atendem.
+  Tamanho: baixa cerca de 180 MB e ocupa perto de 1 GB no celular (o ffmpeg puxa muita coisa).
+  Testado num Termux de verdade pela Action "Testar no Termux" (imagem termux-docker, so na
+  mao, sem segredos): instalador, analise de um tom de 440 Hz, pedido pelo canal, arquivo do
+  Termux:Boot. O que so o aparelho mostra: o download do YouTube (na nuvem ele e barrado), o
+  app abrir sozinho no fim e o Android manter o Termux vivo em segundo plano.
+  Se o Termux sortear um espelho de pacotes desatualizado ("unmet dependencies"), o
+  instalador troca para o espelho oficial e tenta de novo.
 
 NO COMPUTADOR
 Sao duas pecas:
@@ -180,6 +187,8 @@ ARQUIVOS
   docs/programa/servidor.mjs  o programa que atende os pedidos de notas (celular e computador).
                              E a FONTE: a copia em ..\notas-youtube e trazida daqui pelo LIGAR.bat
   docs/programa/instalar-termux.sh   instalador para o Termux (Android)
+  scripts/teste-termux.sh, teste-cliente.mjs, .github/workflows/testar-termux.yml
+                             teste do instalador e do programa dentro de um Termux
   scripts/csp.mjs            recalcula o hash da CSP
   scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
   .github/workflows/buscar-cifra.yml   a Action. O app nao usa mais: o Cifra Club barra a

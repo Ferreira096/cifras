@@ -83,8 +83,9 @@ echo "== 4/4  Testando com um trecho de exemplo =="
 if notas --teste xINKo1kjnWo 108 114 </dev/null | tail -n 1; then
   echo "Funcionou."
 else
-  echo "O teste falhou (veja a mensagem acima). Confira a internet e rode o comando de novo."
-  exit 1
+  echo
+  echo "O teste do trecho de exemplo falhou (mensagem acima). O programa esta instalado e vou ligar assim mesmo."
+  echo "Se a mensagem fala em \"Sign in\" ou \"bot\", o YouTube recusou esta conexao: tente pelo Wi-Fi."
 fi
 
 echo

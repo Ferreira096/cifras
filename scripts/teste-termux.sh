@@ -1,6 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Teste automatico do programa de notas dentro de um Termux de verdade (imagem termux-docker),
-# rodado pela Action "Testar no Termux". Usa o instalador e o programa PUBLICADOS no site.
+# rodado pela Action "Testar no Termux". Usa o instalador do commit testado; o programa e a
+# analise vem do site publicado, como no celular.
 # O que NAO da para testar aqui: o download do YouTube (ele barra servidores de nuvem; no
 # celular funciona) e o que e do Android (abrir o app, segundo plano, Termux:Boot). Por isso o
 # audio do teste e um tom de 440 Hz (La 4) gerado na hora e posto na pasta de audios guardados.
