@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Yv9m5PP5rz7zjU6021hiPn7xtIKur+Nj3JwRkozf4BQ=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-JGX4i3sQNCrK7niesCDDFT8iSUfCvcorZivJqZh0lU8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
@@ -491,10 +491,13 @@ function rota(){
 }
 window.addEventListener('hashchange',()=>{pararRolagem(); pararLoop(); render();});
 
+let carregou=false, esperandoCifra=false; // a biblioteca do site ja foi lida nesta abertura? ha uma cifra esperando por ela?
 function render(){
   const r=rota();
   if(r.tela==='importar'){ importar(r.dados); return; }
-  if(r.tela==='cifra'){const it=lib.itens.find(i=>i.id===r.id); if(it) return renderCifra(it); history.replaceState(null,'','#/'); }
+  if(r.tela==='cifra'){const it=lib.itens.find(i=>i.id===r.id); if(it) return renderCifra(it);
+    if(!carregou){ esperandoCifra=true; document.getElementById('app').innerHTML='<div class="topo"><a class="icone" href="#/" aria-label="Voltar">←</a><h1>Minhas Cifras</h1></div><div class="wrap"><div class="vazio">Abrindo a cifra...</div></div>'; return; }
+    history.replaceState(null,'','#/'); }
   if(r.tela==='ajustes') return renderAjustes();
   if(r.tela==='colar') return renderColar();
   window.scrollTo(0,0); renderLista();
@@ -860,7 +863,7 @@ function iniciar(){
   else if(comp){ pendenteAdd=comp; history.replaceState(null,'','#/'); }
   render();
   carregarProntas().then(tem=>{ const el=document.activeElement; if(tem&&rota().tela==='cifra'&&!(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName))&&!loop.on) render(); });
-  carregarServidor().then(mudou=>{ const el=document.activeElement; const digitando=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName); if(mudou&&!digitando&&rota().tela!=='colar'&&!document.querySelector('#btAdd:disabled')) render(); });
+  carregarServidor().then(mudou=>{ carregou=true; if(esperandoCifra){ esperandoCifra=false; render(); return; } const el=document.activeElement; const digitando=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName); if(mudou&&!digitando&&rota().tela!=='colar'&&!document.querySelector('#btAdd:disabled')) render(); });
 }
 // modulos (type=module) rodam antes do DOMContentLoaded: quando iniciar() roda, CifraClub e Analise ja existem
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',iniciar); else iniciar();
