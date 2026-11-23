@@ -87,7 +87,26 @@ que consegue baixar o audio do YouTube (os servidores do GitHub nao conseguem).
 NOTAS PELO LINK DO YOUTUBE, PEDINDO DO CELULAR
 ----------------------------------------------
 O navegador (celular ou PC) nao consegue baixar o audio do YouTube, e os servidores do GitHub
-sao barrados pelo YouTube. Um computador comum consegue. Por isso sao duas pecas:
+sao barrados pelo YouTube. Um aparelho comum consegue: o proprio celular Android (pelo Termux)
+ou um computador. O programa e o mesmo nos dois: docs/programa/servidor.mjs.
+
+NO PROPRIO CELULAR (ANDROID), SEM COMPUTADOR
+  1. Instalar o Termux (F-Droid).
+  2. No Termux:  curl -fsSL https://ferreira096.github.io/cifras/programa/instalar-termux.sh | bash
+     Instala Node, Python, ffmpeg e yt-dlp, baixa o programa para ~/cifras-notas, cria o
+     comando "notas", testa um trecho e ja deixa atendendo. Rodar de novo atualiza.
+  3. O programa abre o app com o codigo; confirmar. (No app: Ajustes > Rodar neste celular
+     mostra estes passos e copia o comando.)
+  Dia a dia: abrir o Termux, digitar "notas", voltar ao app. Atende em segundo plano enquanto a
+  notificacao do Termux existir. "notas --instalar" + app Termux:Boot = liga com o celular.
+  "notas --codigo <codigo do computador>" = celular e computador atendem com o mesmo codigo.
+  "notas --parar", "notas --parear", "notas --desinstalar" como no computador.
+  Com a tela apagada o Android congela o programa; ao voltar ele percebe e reconecta na hora.
+  Nao foi testado num Android de verdade: o caminho do celular foi exercitado no Windows com
+  Python e ffmpeg de fora (CIFRAS_GENERICO=termux). Primeira instalacao: conferir.
+
+NO COMPUTADOR
+Sao duas pecas:
   no computador  pasta CIFRAS\notas-youtube (fora deste repositorio, nunca publicada). O
                  programa (servidor.mjs) espera pedidos, baixa o audio (yt-dlp), corta o
                  trecho (ffmpeg), roda a mesma analise do app (docs/analise.js) e devolve as
@@ -106,8 +125,8 @@ Nao depende de UM computador: copie a pasta notas-youtube inteira (com o config.
 codigo ser o mesmo) para outro computador e rode o INSTALAR la. Podem ficar varios ligados:
 eles se avisam pelo canal e combinam quem atende cada pedido; se um esta desligado, o outro
 assume depois de 1 s. Detalhes em notas-youtube\LEIA-ME.txt.
-Sem computador nenhum nao ha caminho pelo link: o YouTube barra os servidores de nuvem. So com
-o celular, use o microfone ou um arquivo de audio.
+Sem celular Android com Termux nem computador nao ha caminho pelo link: o YouTube barra os
+servidores de nuvem. Em iPhone, use o microfone ou um arquivo de audio.
 Como conversam: por um canal publico de mensagens (ntfy.sh) cujo nome e o codigo. Sem conta,
 sem token, sem senha. Pelo canal passam so: id do video, inicio/fim e as notas detectadas.
 Limites no computador: trecho de ate 2 min, 80 analises novas por dia, uma de cada vez; o
@@ -158,6 +177,9 @@ ARQUIVOS
   docs/dados/biblioteca.json ponto de partida do app e destino da sincronizacao
   docs/dados/ultimo-erro.json  ultimo erro da Action
   docs/dados/deteccoes.json   notas de riffs analisadas fora do aparelho
+  docs/programa/servidor.mjs  o programa que atende os pedidos de notas (celular e computador).
+                             E a FONTE: a copia em ..\notas-youtube e trazida daqui pelo LIGAR.bat
+  docs/programa/instalar-termux.sh   instalador para o Termux (Android)
   scripts/csp.mjs            recalcula o hash da CSP
   scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
   .github/workflows/buscar-cifra.yml   a Action. O app nao usa mais: o Cifra Club barra a

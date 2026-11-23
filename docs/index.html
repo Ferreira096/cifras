@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-hQmykQVoEJeIEzjYlYqcdGUum04UFubXOYrquk2YETc=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-19wuNwtINkmUGHfgCLcXyOOo6ck8UYblgP2bPUWn/XQ=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
@@ -57,6 +57,9 @@ a{color:var(--sec)}
 .aviso{background:#2a1f10;border:1px solid #6b4a1a;color:#ffd39a;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 12px}
 .aviso.erro{background:#2e1414;border-color:#7a2b2b;color:#ffb3b3}
 .aviso a{color:inherit;font-weight:600}
+.cmd{font-family:var(--mono);font-size:13px;line-height:1.5;background:var(--bg3);border:1px solid var(--linha);border-radius:10px;padding:10px 12px;margin:0 0 10px;word-break:break-all;user-select:all;-webkit-user-select:all}
+.passo{display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:var(--acorde);color:#111;font-size:13px;margin-right:8px}
+a.btLinha.pri{background:var(--acorde);border-color:var(--acorde);color:#111;font-weight:600}
 .rodape{color:var(--tx2);font-size:12px;text-align:center;margin-top:30px;line-height:1.6}
 .card{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;padding:12px;margin-bottom:12px}
 .card h3{margin:0 0 6px;font-size:15px}
@@ -479,13 +482,13 @@ async function releLe(canal,desde){ // devolve {msgs, ultimo}: as mensagens do c
 }
 /* o que chega pelo canal e tratado como texto de fora: so campos conhecidos, com limite de tamanho */
 function limpaDet(d){ if(!d||typeof d!=='object') return null; const s=(x,n)=>typeof x==='string'?x.slice(0,n):'';
-  const det={notas:s(d.notas,600),seq:s(d.seq,8000),baixo:s(d.baixo,8000),acorde:s(d.acorde,12),resumo:s(d.resumo,17000),modo:'vídeo do YouTube, analisado no computador',em:s(d.em,40)}; return det.notas?det:null; }
+  const det={notas:s(d.notas,600),seq:s(d.seq,8000),baixo:s(d.baixo,8000),acorde:s(d.acorde,12),resumo:s(d.resumo,17000),modo:/celular/.test(s(d.modo,80))?'vídeo do YouTube, analisado no celular':'vídeo do YouTube, analisado no computador',em:s(d.em,40)}; return det.notas?det:null; }
 function respostaDe(msgs,id){
-  const meus=msgs.filter(m=>m.id===id), e=meus.find(m=>m.t==='erro'); if(e) return {erro:String(e.erro||'o computador não conseguiu analisar').slice(0,240)};
+  const meus=msgs.filter(m=>m.id===id), e=meus.find(m=>m.t==='erro'); if(e) return {erro:String(e.erro||'não foi possível analisar o trecho').slice(0,240)};
   const ps=meus.filter(m=>m.t==='resultado'&&typeof m.txt==='string');
   for(const origem of [...new Set(ps.map(x=>String(x.m||'')))]){ // dois computadores podem responder ao mesmo pedido: nao misturar as partes
     const dele=ps.filter(x=>String(x.m||'')===origem), de=Math.min(40,+dele[0].de||1), partes=[]; for(let n=1;n<=de;n++){ const p=dele.find(x=>+x.n===n); if(!p) break; partes.push(p.txt); }
-    if(partes.length===de){ let det=null; try{ det=limpaDet(JSON.parse(partes.join(''))); }catch(err){} return det?{det}:{erro:'O computador mandou uma resposta que não consegui ler.'}; } }
+    if(partes.length===de){ let det=null; try{ det=limpaDet(JSON.parse(partes.join(''))); }catch(err){} return det?{det}:{erro:'Chegou uma resposta que não consegui ler.'}; } }
   return {recebido:meus.some(m=>m.t==='recebido'||m.t==='resultado')};
 }
 function acharRiffDoPedido(p){ const item=lib.itens.find(x=>x.id===p.cifra); const riff=item&&item.video===p.video&&(item.riffs||[]).find(x=>mesmoTrecho(x,p)); return riff?{item,riff}:null; }
@@ -496,16 +499,16 @@ async function notasPeloPC(it,r,progresso){
   if(!it.video) throw new Error('Cole o link do YouTube da música primeiro.');
   if(!(r.fim>r.ini)) throw new Error('Riff sem início e fim válidos.');
   if(r.fim-r.ini>120) throw new Error('Trecho grande demais (máximo 2 minutos).');
-  const canal=canalPC(); if(!canal) throw new Error('Este aparelho ainda não está ligado ao computador (Ajustes).');
+  const canal=canalPC(); if(!canal) throw new Error('Este aparelho ainda não está ligado ao programa de notas (Ajustes).');
   let p=pedidoDoRiff(it,r), desde='12h';
   if(!p||Date.now()-p.em>11*3600e3){ // sem pedido em aberto (ou o canal ja esqueceu o antigo): manda um novo
     if(p) tirarPedido(p.id);
     p={id:idPedido(),cifra:it.id,video:it.video,ini:r.ini,fim:r.fim,em:Date.now(),de:(p&&p.de)||Date.now()}; desde='10m';
-    progresso('Enviando o pedido ao computador...');
+    progresso('Enviando o pedido...');
     await releEnvia(canal,{t:'pedido',id:p.id,video:p.video,ini:p.ini,fim:p.fim});
     gravarPedidos(lerPedidos().concat(p));
   }
-  progresso('Pedido enviado '+horaDoPedido(p)+'. Esperando o computador responder...');
+  progresso('Pedido enviado '+horaDoPedido(p)+'. Esperando a resposta...');
   pedindo.add(p.id);
   try{
     const t0=Date.now(), todas=[]; let recebido=false, avisou=false;
@@ -514,9 +517,9 @@ async function notasPeloPC(it,r,progresso){
       const resp=respostaDe(todas,p.id);
       if(resp.erro){ tirarPedido(p.id); throw new Error(resp.erro); }
       if(resp.det){ aplicaDet(p,resp.det); return 'ok'; }
-      if(resp.recebido&&!recebido){ recebido=true; progresso('O computador recebeu o pedido e está analisando o trecho...'); }
+      if(resp.recebido&&!recebido){ recebido=true; progresso('Pedido recebido. Analisando o trecho...'); }
       const s=(Date.now()-t0)/1000;
-      if(!recebido&&s>20&&!avisou){ avisou=true; progresso('O computador ainda não respondeu. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. Continuo esperando mais um pouco...'); }
+      if(!recebido&&s>20&&!avisou){ avisou=true; progresso('Ainda sem resposta. O programa de notas precisa estar aberto: no celular, o Termux com "notas"; no computador, a janela "LIGAR NOTAS DO YOUTUBE". Continuo esperando mais um pouco...'); }
       if(s>(recebido?240:70)) return 'espera';
       await dorme(i<8?2500:6000);
     }
@@ -542,7 +545,7 @@ async function conferirPedidos(){
   }catch(e){}
   conferindo=false;
   if(chegou) toast(chegou>1?'Chegaram as notas de '+chegou+' riffs':'Chegaram as notas do riff');
-  else if(falhou) toast('O computador não conseguiu analisar um riff: '+falhou,true);
+  else if(falhou) toast('Não deu para analisar um riff: '+falhou,true);
   if((chegou||falhou)&&rota().tela==='cifra'&&!ocupadoNaTela()) render();
 }
 async function testarPC(){ // devolve em quantos ms o computador respondeu, ou -1
@@ -553,8 +556,8 @@ async function testarPC(){ // devolve em quantos ms o computador respondeu, ou -
 function parear(bruto){
   let c=''; try{ c=normalizaCanal(decodeURIComponent(bruto)); }catch(e){}
   history.replaceState(null,'','#/ajustes'); // o codigo nao fica no endereco nem no historico
-  if(!c){ renderAjustes(); toast('Código do computador inválido',true); return; }
-  if(c!==canalPC()){ if(!confirm('Ligar este aparelho ao computador de código terminado em "'+c.slice(-4)+'"?\n\nConfirme só se o código veio do seu computador.')){ renderAjustes(); return; } guardarCanal(c); }
+  if(!c){ renderAjustes(); toast('Código inválido',true); return; }
+  if(c!==canalPC()){ if(!confirm('Ligar este aparelho ao programa de notas de código terminado em "'+c.slice(-4)+'"?\n\nConfirme só se o código veio do seu Termux ou do seu computador.')){ renderAjustes(); return; } guardarCanal(c); }
   renderAjustes(); const b=document.getElementById('pcTestar'); if(b) b.click();
 }
 function toast(msg,erro){const t=document.getElementById('toast'); t.textContent=msg; t.className='toast'+(erro?' erro':''); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.add('oculto'),erro?4000:2200);}
@@ -569,6 +572,7 @@ function rota(){
   const im=location.hash.match(/^#\/importar\/(.+)$/); if(im) return {tela:'importar',dados:im[1]};
   const pm=location.hash.match(/^#\/parear\/(.+)$/); if(pm) return {tela:'parear',codigo:pm[1]};
   if(location.hash==='#/ajustes') return {tela:'ajustes'};
+  if(location.hash==='#/celular') return {tela:'celular'};
   if(location.hash==='#/colar') return {tela:'colar'};
   return {tela:'lista'};
 }
@@ -583,6 +587,7 @@ function render(){
     if(!carregou){ esperandoCifra=true; document.getElementById('app').innerHTML='<div class="topo"><a class="icone" href="#/" aria-label="Voltar">←</a><h1>Minhas Cifras</h1></div><div class="wrap"><div class="vazio">Abrindo a cifra...</div></div>'; return; }
     history.replaceState(null,'','#/'); }
   if(r.tela==='ajustes') return renderAjustes();
+  if(r.tela==='celular') return renderCelular();
   if(r.tela==='colar') return renderColar();
   window.scrollTo(0,0); renderLista();
 }
@@ -722,10 +727,12 @@ function renderAjustes(){
       <div class="botoes"><button id="bkExp">Salvar arquivo</button><button id="bkImp">Abrir arquivo</button><input type="file" id="bkArq" accept="application/json,.json" class="oculto"></div>
       <div id="bkMsg" role="status" aria-live="polite"></div></div>
     <div class="card"><h3>Notas pelo link do YouTube <span class="opc">opcional</span></h3>
-      ${pc?`<p class="texto">Este aparelho está ligado ao computador de código terminado em <b>${h(pc.slice(-4))}</b>. No riff, toque em "pelo link do YouTube": o computador baixa o trecho, analisa e devolve as notas aqui. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta; pedido feito com ele desligado espera até 12 horas.${nPed?' Pedidos aguardando resposta: '+nPed+'.':''}</p>
-      <div class="botoes"><button id="pcTestar">Testar a ligação</button><button id="pcDesligar">Desligar deste aparelho</button></div>`
-      :`<p class="texto">O celular não consegue baixar o áudio do YouTube; um computador seu consegue. Ligue os dois uma vez e peça daqui as notas de qualquer trecho. No computador, abra "LIGAR NOTAS DO YOUTUBE" (pasta CIFRAS) e aponte a câmera do celular para o QR code que aparece, ou digite abaixo o código mostrado lá.</p>
-      <div class="add"><input id="pcCod" placeholder="cifras-xxxx-xxxx-xxxx-xxxx" aria-label="Código do computador" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false"><button class="pri" id="pcLigar">Ligar</button></div>`}
+      ${pc?`<p class="texto">Este aparelho está ligado ao programa de notas de código terminado em <b>${h(pc.slice(-4))}</b>. No riff, toque em "pelo link do YouTube": o programa baixa o trecho, analisa e devolve as notas aqui. Ele precisa estar aberto (no celular, o Termux com "notas"; no computador, a janela "LIGAR NOTAS DO YOUTUBE"); pedido feito com ele fechado espera até 12 horas.${nPed?' Pedidos aguardando resposta: '+nPed+'.':''}</p>
+      <div class="botoes"><button id="pcTestar">Testar a ligação</button><button id="pcDesligar">Desligar deste aparelho</button><a class="btLinha" href="#/celular">Rodar neste celular</a></div>`
+      :`<p class="texto">O app sozinho não consegue baixar o áudio do YouTube; um programa pequeno faz isso e devolve as notas. Ele pode rodar neste celular (Android) ou num computador seu.</p>
+      <div class="botoes"><a class="btLinha pri" href="#/celular">Rodar neste celular (Android)</a></div>
+      <p class="texto" style="margin-top:12px">Num computador: abra "LIGAR NOTAS DO YOUTUBE" e aponte a câmera para o QR code que aparece, ou digite abaixo o código mostrado lá.</p>
+      <div class="add"><input id="pcCod" placeholder="cifras-xxxx-xxxx-xxxx-xxxx" aria-label="Código do programa de notas" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false"><button id="pcLigar">Ligar</button></div>`}
       <div id="pcMsg" role="status" aria-live="polite"></div></div>
     <div class="card"><h3>Sincronizar entre aparelhos <span class="opc">opcional</span></h3>
       <p class="texto">${h(estado)}</p>
@@ -747,18 +754,47 @@ function renderAjustes(){
       const antes=lib.itens.length; mesclar(j); await salvar(); diz('bkMsg','Arquivo lido com '+j.itens.length+' cifras. Novas neste aparelho: '+(lib.itens.length-antes)+'.'); }
     catch(e){ diz('bkMsg','Não consegui ler esse arquivo ('+(e.message||e)+').',true); }
   };
-  if(q('#pcLigar')){ const liga=()=>{ const c=normalizaCanal(q('#pcCod').value); if(!c) return diz('pcMsg','Código incompleto. São 16 letras e números, como aparece na tela do computador.',true); guardarCanal(c); renderAjustes(); const b=document.getElementById('pcTestar'); if(b) b.click(); };
+  if(q('#pcLigar')){ const liga=()=>{ const c=normalizaCanal(q('#pcCod').value); if(!c) return diz('pcMsg','Código incompleto. São 16 letras e números, como aparece na tela do programa.',true); guardarCanal(c); renderAjustes(); const b=document.getElementById('pcTestar'); if(b) b.click(); };
     q('#pcLigar').onclick=liga; q('#pcCod').onkeydown=(e)=>{ if(e.key==='Enter') liga(); }; }
-  if(q('#pcTestar')) q('#pcTestar').onclick=async()=>{ const b=q('#pcTestar'); b.disabled=true; diz('pcMsg','Chamando o computador...');
-    try{ const ms=await testarPC(); if(ms>=0) diz('pcMsg','O computador respondeu em '+(ms/1000).toFixed(1).replace('.',',')+' s. Pode pedir as notas nos riffs.'); else diz('pcMsg','O computador não respondeu. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. Se o código foi trocado lá, desligue aqui e ligue de novo com o código novo.',true); }
+  if(q('#pcTestar')) q('#pcTestar').onclick=async()=>{ const b=q('#pcTestar'); b.disabled=true; diz('pcMsg','Chamando o programa de notas...');
+    try{ const ms=await testarPC(); if(ms>=0) diz('pcMsg','O programa de notas respondeu em '+(ms/1000).toFixed(1).replace('.',',')+' s. Pode pedir as notas nos riffs.'); else diz('pcMsg','Ninguém respondeu. O programa de notas precisa estar aberto: no celular, abra o Termux e digite notas; no computador, a janela "LIGAR NOTAS DO YOUTUBE". Se o código foi trocado, desligue aqui e ligue de novo com o código novo.',true); }
     catch(e){ diz('pcMsg',e.message||String(e),true); }
     const b2=document.getElementById('pcTestar'); if(b2) b2.disabled=false; };
-  if(q('#pcDesligar')) q('#pcDesligar').onclick=()=>{ if(!confirm('Desligar este aparelho do computador? As notas já recebidas continuam nos riffs.')) return; guardarCanal(''); renderAjustes(); };
+  if(q('#pcDesligar')) q('#pcDesligar').onclick=()=>{ if(!confirm('Desligar este aparelho do programa de notas? As notas já recebidas continuam nos riffs.')) return; guardarCanal(''); renderAjustes(); };
   const depois=(ok)=>{ renderAjustes(); diz('sMsg',ok?'Sincronizado.':'Não sincronizou: '+(sinc.msg||'operação cancelada')+'.',!ok); };
   if(q('#sLigar')) q('#sLigar').onclick=async()=>{ if(await pedirToken()){ diz('sMsg','Sincronizando...'); depois(await sincronizarAgora()); } };
   if(q('#sDestravar')) q('#sDestravar').onclick=async()=>{ if(await garanteToken()){ diz('sMsg','Sincronizando...'); depois(await sincronizarAgora()); } };
   if(q('#sAgora')) q('#sAgora').onclick=async()=>{ diz('sMsg','Sincronizando...'); depois(await sincronizarAgora()); };
   if(q('#sDesligar')) q('#sDesligar').onclick=()=>{ if(!confirm('Desligar a sincronização neste aparelho? As cifras continuam aqui; o token guardado é apagado.')) return; esquecerToken(); sinc={estado:'',msg:''}; renderAjustes(); };
+}
+/* ====================== ajuda: o programa de notas no proprio celular (Android + Termux) ====================== */
+const CMD_TERMUX='curl -fsSL https://ferreira096.github.io/cifras/programa/instalar-termux.sh | bash';
+function renderCelular(){
+  const app=document.getElementById('app'); window.scrollTo(0,0);
+  app.innerHTML=`
+  <div class="topo"><a class="icone" href="#/ajustes" aria-label="Voltar">←</a><h1>Rodar no celular</h1></div>
+  <div class="wrap">
+    <div class="card"><h3>Notas do YouTube sem computador</h3>
+      <p class="texto">Em celular Android, o programa que baixa o trecho do YouTube e devolve as notas roda no próprio aparelho, dentro do Termux (um terminal para Android). Instala uma vez; depois é abrir o Termux, digitar <b>notas</b> e voltar para cá. Não existe para iPhone.</p></div>
+    <div class="card"><h3><span class="passo">1</span>Instale o Termux</h3>
+      <p class="texto">Use a versão da F-Droid, que é a indicada pelo projeto. O Android pede permissão para instalar um app de fora da loja.</p>
+      <div class="botoes"><a class="btLinha" href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener noreferrer">Abrir a página do Termux</a></div></div>
+    <div class="card"><h3><span class="passo">2</span>Cole este comando no Termux</h3>
+      <p class="texto">Abra o Termux, cole e toque em Enter. Ele instala Node, Python, ffmpeg e yt-dlp e baixa o programa deste site. Leva alguns minutos e baixa algumas centenas de MB: prefira o Wi-Fi.</p>
+      <div class="cmd" id="cmdT">${h(CMD_TERMUX)}</div>
+      <div class="botoes"><button class="pri" id="btCopiar">Copiar comando</button></div>
+      <div id="cpMsg" role="status" aria-live="polite"></div></div>
+    <div class="card"><h3><span class="passo">3</span>Confirme a ligação</h3>
+      <p class="texto">No fim, o Termux testa um trecho, começa a atender e abre este app perguntando se pode ligar: confirme. Depois, em Ajustes, "Testar a ligação" mostra se ele está respondendo.</p></div>
+    <div class="card"><h3>No dia a dia</h3>
+      <p class="texto">Abra o Termux, digite <b>notas</b> e volte para o app. Ele continua atendendo em segundo plano enquanto a notificação do Termux estiver lá; para parar, toque em Exit na notificação. Pedido feito com ele fechado espera até 12 horas.</p>
+      <p class="texto">Para ligar sozinho quando o celular liga: instale também o Termux:Boot (F-Droid), abra-o uma vez e rode <b>notas --instalar</b>. Se o Android fechar o Termux em segundo plano, tire a economia de bateria dele nas configurações do aparelho.</p>
+      <p class="texto">Já usa um computador? Para os dois atenderem com o mesmo código, rode <b>notas --codigo</b> seguido do código do computador.</p></div>
+  </div>`;
+  app.querySelector('#btCopiar').onclick=async()=>{ let ok=false;
+    try{ await navigator.clipboard.writeText(CMD_TERMUX); ok=true; }
+    catch(e){ try{ const r=document.createRange(); r.selectNodeContents(document.getElementById('cmdT')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); ok=document.execCommand('copy'); }catch(e2){} }
+    document.getElementById('cpMsg').innerHTML='<div class="aviso'+(ok?'':' erro')+'">'+(ok?'Comando copiado. No Termux, toque e segure na tela e escolha Paste.':'Não consegui copiar sozinho. Toque e segure no comando acima para copiar.')+'</div>'; };
 }
 function tomAtual(it){const t=tomTransposto(it.tom,(it.aj&&it.aj.n)||0); return t?t.nome:(it.tom||'');}
 
@@ -879,7 +915,7 @@ function painelRiffs(it){
         <button class="mini det" data-i="${i}" data-modo="mic">microfone</button>
         <button class="mini det" data-i="${i}" data-modo="aba">áudio da guia (PC)</button>
         <button class="mini det" data-i="${i}" data-modo="arquivo">arquivo de áudio</button></div>
-      <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r), ped=pedidoDoRiff(it,r); return (det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:'')+(ped?`<div class="aviso">Pedido das notas enviado ${h(horaDoPedido(ped))}. Aguardando o computador: ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. O pedido vale por 12 horas e as notas aparecem aqui quando chegarem.</div>`:''); })()}</div>
+      <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r), ped=pedidoDoRiff(it,r); return (det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:'')+(ped?`<div class="aviso">Pedido das notas enviado ${h(horaDoPedido(ped))}. Aguardando o programa de notas: ele precisa estar aberto (o Termux no celular ou a janela "LIGAR NOTAS DO YOUTUBE" no computador). O pedido vale por 12 horas e as notas aparecem aqui quando chegarem.</div>`:''); })()}</div>
       ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas${T.n?` (no tom da tela, ${h(tomTela)})`:''}:</div><div class="notas" style="margin-top:2px">${h(T.t(r.notas))}</div><div class="pianinho">${pianoSvg(marcasDeNotas(T.t(r.notas)),{lb:12,h:40})}</div>`:''}
       ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
     </div>`).join('')}</div>
@@ -928,7 +964,7 @@ function ligarRiffs(it){
   };
   app.querySelectorAll('.det').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, modo=b.dataset.modo;
     if(modo==='youtube'){ const caixa=q('#det'+i), id=it.id; const prog=(x)=>{ const c=document.getElementById('det'+i), r0=rota(); if(c&&r0.tela==='cifra'&&r0.id===id) c.innerHTML='<div class="aviso">'+h(x)+'</div>'; };
-      if(!canalPC()){ caixa.innerHTML='<div class="aviso">Para pedir as notas por aqui, ligue este aparelho ao seu computador uma vez, em <a href="#/ajustes">Ajustes</a>. Sem isso, use o microfone ou um arquivo de áudio.</div>'; return; }
+      if(!canalPC()){ caixa.innerHTML='<div class="aviso">Para pedir as notas por aqui, ligue o programa de notas uma vez, em <a href="#/ajustes">Ajustes</a>: ele roda neste celular (Android) ou num computador. Sem isso, use o microfone ou um arquivo de áudio.</div>'; return; }
       b.disabled=true; notasPeloPC(it,it.riffs[i],prog).then(res=>{ if(res==='ok') toast('Notas detectadas'); else if(rota().tela==='cifra'&&!ocupadoNaTela()) render(); }).catch(e=>{ const c=document.getElementById('det'+i); if(c) c.innerHTML='<div class="aviso erro">'+h(e.message||String(e))+'</div>'; b.disabled=false; }); return; }
     if(modo==='arquivo'){ const inp=q('#arqAudio'); inp.onchange=()=>{ if(inp.files[0]) rodarDet(i,'arquivo',inp.files[0]); inp.value=''; }; inp.click(); return; } q('#video').classList.remove('oculto'); garantePlayer(it,()=>rodarDet(i,modo)); });
   app.querySelectorAll('.tocar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; const card=b.closest('.riff'); if(loop.on&&loop.ini===r.ini&&loop.fim===r.fim){pararLoop(); return;} q('#video').classList.remove('oculto'); garantePlayer(it,()=>tocarLoop(r,card));});
