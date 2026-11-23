@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-i9wSsmtsXRmmCF+nLlXD2lhTio+ZwJu8hmJRyox4FC8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Mw4XLyspwOa3AVgVCW38nGVoYOlv6L8WnBhMnqaDDYk=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
-<script type="module" src="cifraclub.js"></script>
-<script type="module" src="analise.js"></script>
+<script type="module" src="cifraclub.js?v=2fcdea3270"></script>
+<script type="module" src="analise.js?v=bd06e16cd4"></script>
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
@@ -672,7 +672,7 @@ function renderCifra(it){
   const tom=tomAtual(it);
   // tablaturas: blocos de linhas "E|--3--" seguidas; no modo teclado viram linhas de teclas
   const textoDe=(l)=>l.every(s=>typeof s==='string')?l.join(''):null;
-  const ehTab=(l)=>{ const x=textoDe(l); return x!=null&&!!window.CifraClub&&CifraClub.ehLinhaDeTab(x); };
+  const ehTab=(l)=>{ const x=textoDe(l); return x!=null&&!!window.CifraClub&&typeof CifraClub.ehLinhaDeTab==='function'&&CifraClub.ehLinhaDeTab(x); };
   const temTab=it.linhas.some(ehTab);
   const {bemol}=acordesVisiveis(it);
   const partes=[];
@@ -681,7 +681,7 @@ function renderCifra(it){
     if(ehTab(l)){
       let j=i; while(j<it.linhas.length&&ehTab(it.linhas[j])) j++;
       const grupo=it.linhas.slice(i,j).map(textoDe);
-      const teclas=modoTab==='teclado'?CifraClub.tabParaTeclado(grupo,it.aj.n,bemol):null;
+      let teclas=null; if(modoTab==='teclado'){ try{ teclas=CifraClub.tabParaTeclado(grupo,it.aj.n,bemol); }catch(e){ teclas=null; } }
       if(teclas) for(const r of teclas) partes.push(`<div class="ln tab"><span class="nt">${h(r.nota.padEnd(3,' '))}</span>|${h(r.corpo)}</div>`);
       else for(const x of grupo) partes.push(`<div class="ln tab">${h(x)}</div>`);
       i=j-1; continue;
@@ -837,7 +837,11 @@ function iniciar(){
 }
 // modulos (type=module) rodam antes do DOMContentLoaded: quando iniciar() roda, CifraClub e Analise ja existem
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',iniciar); else iniciar();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+  const tinhaSW=!!navigator.serviceWorker.controller; let recarregou=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!tinhaSW||recarregou) return; recarregou=true; const el=document.activeElement; const ocupado=(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName))||rota().tela==='colar'||loop.on||rolagem.on; if(ocupado) toast('Versão nova pronta: feche e abra o app para usar'); else location.reload(); });
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>

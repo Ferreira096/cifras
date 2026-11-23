@@ -77,8 +77,8 @@ SEGURANCA
   - Content-Security-Policy na <meta>: script so do proprio site (o inline por hash
     SHA-256) e do player do YouTube; conexoes so ao site, a api.github.com e ao leitor
     r.jina.ai; frames so do YouTube.
-    ATENCAO: mudou uma letra do script de docs/index.html? Rode "node scripts/csp.mjs"
-    antes de subir, senao a pagina abre em branco.
+    ATENCAO: mudou qualquer arquivo de docs/? Rode "node scripts/csp.mjs" antes de subir.
+    Sem isso a pagina abre em branco (hash velho) ou o app instalado nao percebe a mudanca.
   - Tudo que vem de fora (leitor, favorito, texto colado, arquivo de backup, JSON) e
     escapado antes de ir para a tela. Testado com <script> dentro da letra: vira texto.
   - O leitor publico e um terceiro: ele ve qual cifra voce pediu, nada mais. Se cair ou
@@ -91,7 +91,7 @@ SEGURANCA
 PUBLICAR MUDANCAS
 -----------------
 A pasta e um repositorio git ligado ao GitHub:
-  node scripts/csp.mjs        (se mexeu no index.html)
+  node scripts/csp.mjs        (SEMPRE: carimba a versao dos modulos, a CSP e o service worker)
   git pull --rebase ; git add -A ; git commit -m "..." ; git push
 O Pages republica sozinho em 1 a 2 min.
 
