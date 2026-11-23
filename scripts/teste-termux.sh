@@ -13,8 +13,8 @@ mascara() { sed -E 's/cifras-[a-z0-9]{4}(-[a-z0-9]{4}){3}/cifras-(codigo)/g'; }
 
 COD="cifras-$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n' | sed -E 's/(.{4})/\1-/g; s/-$//')"
 
-echo "=== 1. instalador publicado, com o codigo vindo do app ==="
-curl -fsSL "$SITE/programa/instalar-termux.sh" | CIFRAS_SEM_TESTE=1 CIFRAS_CODIGO="$COD" bash 2>&1 | tail -n 25 | mascara
+echo "=== 1. instalador deste commit, com o codigo vindo do app ==="
+curl -fsSL "$RAW/docs/programa/instalar-termux.sh" | CIFRAS_SEM_TESTE=1 CIFRAS_CODIGO="$COD" bash 2>&1 | grep -v -E "^(Get:|Selecting|Preparing|Unpacking|Setting up|\(Reading)" | mascara
 command -v notas >/dev/null || falhou "comando notas nao foi criado"
 ok "comando notas criado"
 echo "  node $(node -v) | $(python --version) | yt-dlp $(python -m yt_dlp --version) | $(ffmpeg -version | head -n 1 | cut -c1-40)"

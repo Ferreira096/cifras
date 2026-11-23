@@ -29,8 +29,19 @@ fi
 echo
 echo "== 1/4  Atualizando o Termux e instalando Node, Python e ffmpeg (alguns minutos) =="
 export DEBIAN_FRONTEND=noninteractive
-pkg upgrade -y -o Dpkg::Options::="--force-confold" </dev/null
-pkg install -y nodejs-lts python ffmpeg </dev/null
+OPCOES="-o Dpkg::Options::=--force-confold"
+instalar_pacotes() { pkg upgrade -y $OPCOES </dev/null && pkg install -y nodejs-lts python ffmpeg </dev/null; }
+if ! instalar_pacotes; then
+  # O Termux sorteia um espelho de pacotes; alguns ficam desatualizados e a instalacao quebra com
+  # "unmet dependencies". O espelho oficial resolve.
+  echo
+  echo "Os pacotes nao instalaram com o espelho sorteado pelo Termux (costuma estar desatualizado)."
+  echo "Trocando para o espelho oficial e tentando de novo..."
+  echo "deb https://packages.termux.dev/apt/termux-main stable main" > "$PREFIX/etc/apt/sources.list"
+  apt update </dev/null
+  apt full-upgrade -y $OPCOES </dev/null
+  apt install -y nodejs-lts python ffmpeg </dev/null
+fi
 python -m pip --version >/dev/null 2>&1 </dev/null || pkg install -y python-pip </dev/null
 
 echo
