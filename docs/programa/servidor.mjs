@@ -381,8 +381,8 @@ try {
     if (s.length !== 16) { console.log('Codigo incompleto. Sao 16 letras e numeros, como em cifras-xxxx-xxxx-xxxx-xxxx.'); process.exit(1); }
     await pararOutro();
     gravaJson(F_CONFIG, { canal: 'cifras-' + s.match(/.{4}/g).join('-'), criado: new Date().toISOString() });
-    estado.pareado = true; estado.ultimo = ''; estado.pares = {}; gravaEstado();
-    console.log('Codigo trocado. O app que ja usa esse codigo nao precisa ligar de novo. Abra o programa outra vez.'); process.exit(0);
+    estado.pareado = false; estado.ultimo = ''; estado.pares = {}; gravaEstado();
+    console.log('Codigo trocado. Abra o programa outra vez.'); process.exit(0);
   }
   if (args[0] === '--desinstalar') {
     const tinha = fs.existsSync(F_LOGIN); fs.rmSync(F_LOGIN, { force: true });

@@ -1,0 +1,25 @@
+name: Testar no Termux
+
+# Roda o instalador e o programa de notas PUBLICADOS no site dentro de um Termux de verdade
+# (imagem oficial termux/termux-docker). So na mao: Actions > Testar no Termux > Run workflow.
+# Nao usa segredo nenhum nem escreve no repositorio.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  termux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Instalar e exercitar o programa dentro do Termux
+        env:
+          RAW: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
+        run: |
+          curl -fsSL "$RAW/scripts/teste-termux.sh" -o teste.sh
+          sed -i "s#__RAW__#$RAW#" teste.sh
+          chmod 644 teste.sh
+          docker run --rm --security-opt seccomp=unconfined \
+            -v "$PWD/teste.sh:/data/data/com.termux/files/home/teste.sh:ro" \
+            termux/termux-docker:x86_64 bash /data/data/com.termux/files/home/teste.sh

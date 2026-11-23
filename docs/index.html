@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-19wuNwtINkmUGHfgCLcXyOOo6ck8UYblgP2bPUWn/XQ=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-HLgQ9cOGVB9d5i+cBRw/xRBziFZ2JUf2Ny9zBs7pjFY=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
@@ -768,9 +768,13 @@ function renderAjustes(){
   if(q('#sDesligar')) q('#sDesligar').onclick=()=>{ if(!confirm('Desligar a sincronização neste aparelho? As cifras continuam aqui; o token guardado é apagado.')) return; esquecerToken(); sinc={estado:'',msg:''}; renderAjustes(); };
 }
 /* ====================== ajuda: o programa de notas no proprio celular (Android + Termux) ====================== */
-const CMD_TERMUX='curl -fsSL https://ferreira096.github.io/cifras/programa/instalar-termux.sh | bash';
+function novoCanalApp(){ const L='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for(const b of crypto.getRandomValues(new Uint8Array(16))) s+=L[b%L.length]; return 'cifras-'+s.match(/.{4}/g).join('-'); }
+let codigoDaTela=''; // codigo criado para o comando enquanto o aparelho ainda nao tem um
 function renderCelular(){
   const app=document.getElementById('app'); window.scrollTo(0,0);
+  // o comando leva o codigo deste aparelho: o programa ja nasce ligado ao app (e ao computador, se houver um com o mesmo codigo)
+  const cod=canalPC()||codigoDaTela||(codigoDaTela=novoCanalApp()), CMD_TERMUX='curl -fsSL https://ferreira096.github.io/cifras/programa/instalar-termux.sh | CIFRAS_CODIGO='+cod+' bash';
+  const adota=()=>{ if(!canalPC()) guardarCanal(cod); };
   app.innerHTML=`
   <div class="topo"><a class="icone" href="#/ajustes" aria-label="Voltar">←</a><h1>Rodar no celular</h1></div>
   <div class="wrap">
@@ -782,16 +786,18 @@ function renderCelular(){
     <div class="card"><h3><span class="passo">2</span>Cole este comando no Termux</h3>
       <p class="texto">Abra o Termux, cole e toque em Enter. Ele instala Node, Python, ffmpeg e yt-dlp e baixa o programa deste site. Leva alguns minutos e baixa algumas centenas de MB: prefira o Wi-Fi.</p>
       <div class="cmd" id="cmdT">${h(CMD_TERMUX)}</div>
+      <p class="texto">O comando leva o código deste aparelho, para o programa já nascer ligado ao app. Não mande para outras pessoas.</p>
       <div class="botoes"><button class="pri" id="btCopiar">Copiar comando</button></div>
       <div id="cpMsg" role="status" aria-live="polite"></div></div>
-    <div class="card"><h3><span class="passo">3</span>Confirme a ligação</h3>
-      <p class="texto">No fim, o Termux testa um trecho, começa a atender e abre este app perguntando se pode ligar: confirme. Depois, em Ajustes, "Testar a ligação" mostra se ele está respondendo.</p></div>
+    <div class="card"><h3><span class="passo">3</span>Pronto</h3>
+      <p class="texto">No fim, o Termux testa um trecho, começa a atender e abre este app em Ajustes, mostrando que está respondendo. Se o app perguntar se pode ligar, confirme.</p></div>
     <div class="card"><h3>No dia a dia</h3>
       <p class="texto">Abra o Termux, digite <b>notas</b> e volte para o app. Ele continua atendendo em segundo plano enquanto a notificação do Termux estiver lá; para parar, toque em Exit na notificação. Pedido feito com ele fechado espera até 12 horas.</p>
       <p class="texto">Para ligar sozinho quando o celular liga: instale também o Termux:Boot (F-Droid), abra-o uma vez e rode <b>notas --instalar</b>. Se o Android fechar o Termux em segundo plano, tire a economia de bateria dele nas configurações do aparelho.</p>
-      <p class="texto">Já usa um computador? Para os dois atenderem com o mesmo código, rode <b>notas --codigo</b> seguido do código do computador.</p></div>
+      <p class="texto">Já usa um computador ligado a este app? O celular entra com o mesmo código e os dois passam a atender: quem estiver ligado responde.</p></div>
   </div>`;
-  app.querySelector('#btCopiar').onclick=async()=>{ let ok=false;
+  document.getElementById('cmdT').addEventListener('copy',adota); // copiou na mao: o aparelho passa a usar o codigo do comando
+  app.querySelector('#btCopiar').onclick=async()=>{ let ok=false; adota();
     try{ await navigator.clipboard.writeText(CMD_TERMUX); ok=true; }
     catch(e){ try{ const r=document.createRange(); r.selectNodeContents(document.getElementById('cmdT')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); ok=document.execCommand('copy'); }catch(e2){} }
     document.getElementById('cpMsg').innerHTML='<div class="aviso'+(ok?'':' erro')+'">'+(ok?'Comando copiado. No Termux, toque e segure na tela e escolha Paste.':'Não consegui copiar sozinho. Toque e segure no comando acima para copiar.')+'</div>'; };
