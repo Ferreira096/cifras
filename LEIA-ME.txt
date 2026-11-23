@@ -1,110 +1,99 @@
-MINHAS CIFRAS - GITHUB PAGES
-============================
-No ar em:  https://ferreira096.github.io/cifras/
-Repositorio: https://github.com/Ferreira096/cifras  (publico; o token NUNCA vai para ele)
+MINHAS CIFRAS
+=============
+No ar em:    https://ferreira096.github.io/cifras/
+Repositorio: https://github.com/Ferreira096/cifras  (publico)
 
-O site sai de docs/ pelo GitHub Pages e a biblioteca e o arquivo docs/dados/biblioteca.json.
-Ja vem com o "Poderoso Nome" dentro.
+As cifras ficam guardadas NO APARELHO (no navegador). Adicionar, mudar tom, simplificar,
+riffs e apagar nao pedem conta, token nem PIN.
 
 COMO ADICIONAR UMA CIFRA
 ------------------------
-Caminho principal: o FAVORITO. O Cifra Club bloqueia os servidores do GitHub (403), entao
-quem le a pagina e o seu proprio navegador:
-  1. No app, abra "Configurar o favorito (uma vez por aparelho)" e toque em "Copiar codigo".
-  2. Crie um favorito chamado "Cifras" cujo endereco e esse codigo (as instrucoes por
-     aparelho estao na propria tela: Android, iPhone e PC).
-  3. Na pagina de uma cifra no Cifra Club, acione o favorito (no Android: digite "Cifras"
-     na barra de endereco e toque nele). O app abre com a cifra ja guardada, acordes no lugar.
-Caminho secundario: "Ou cole o link" dispara uma GitHub Action que tenta buscar a pagina.
-Hoje ela e barrada pelo Cifra Club; fica como tentativa, e o app avisa se falhar.
+1. Colar o link (principal). Cole o link da cifra do Cifra Club no campo "Adicionar cifra".
+   Ao colar um link valido o app ja busca; leva de 2 a 20 segundos. A pagina vem por um
+   leitor publico (r.jina.ai), porque o Cifra Club nao deixa outro site ler as paginas dele.
+   So o endereco da cifra vai para esse leitor.
+2. Compartilhar (Android). Com o app instalado, na pagina da cifra toque em Compartilhar
+   e escolha "Cifras". Se o app ja estava instalado antes de 23/11/2026, reinstale para o
+   Android enxergar a opcao.
+3. Colar o texto. Em "Outras formas de adicionar" > "Colar texto": serve para qualquer
+   site ou para uma cifra sua. Linha so com acordes vira linha de acordes.
+4. Favorito no navegador. Le a cifra na propria pagina do Cifra Club, sem leitor externo.
+   E a reserva para o dia em que o leitor publico estiver fora do ar.
 
-TOKEN E PIN (uma vez por aparelho)
-----------------------------------
-Para GRAVAR (adicionar, mudar tom, riffs, apagar) o app precisa de um token do GitHub:
+ONDE FICAM AS CIFRAS
+--------------------
+No armazenamento do navegador daquele aparelho. Limpar os dados do navegador apaga tudo.
+Em Ajustes > Copia de seguranca: "Salvar arquivo" gera um .json com tudo e "Abrir arquivo"
+traz de volta (ou leva para outro aparelho). Ao abrir, o app junta: vale a versao mais
+nova de cada cifra, e o que foi apagado continua apagado.
+
+SINCRONIZAR ENTRE APARELHOS (OPCIONAL)
+--------------------------------------
+Ajustes > "Ligar sincronizacao". Ai o app grava a biblioteca em docs/dados/biblioteca.json
+deste repositorio, e os aparelhos com a sincronizacao ligada mostram as mesmas cifras.
+Precisa de um token do GitHub:
   github.com -> Settings (perfil) -> Developer settings -> Personal access tokens
   -> Fine-grained tokens -> Generate new token.
      Repository access: Only select repositories -> "cifras"
      Permissions -> Repository permissions -> Contents: Read and write
-     Expiration: 90 dias ou 1 ano (quando vencer, o app avisa e pede outro).
-No app, toque na chave (🔑), cole o token e crie um PIN (minimo 6 caracteres). O token fica
-CIFRADO no aparelho com esse PIN; o PIN e pedido uma vez a cada abertura, na primeira
-gravacao. Sem token o app so le. Sem internet, abre a copia local.
-
-RIFFS: QUE NOTAS A MUSICA ESTA TOCANDO
---------------------------------------
-Em cada riff (trecho do video, ex.: 1:48 a 1:54) ha quatro jeitos de o app DETECTAR as notas:
-  🎬 pelo link do YouTube  o app pede a uma GitHub Action que baixe SO o trecho do video,
-                      analise e grave o resultado no riff (1 a 3 min). E o caminho "so pelo
-                      link", sem microfone. PROBLEMA (29/09/2026): o YouTube barra os
-                      servidores do GitHub ("Sign in to confirm you're not a bot"), mesmo com
-                      provedor de PO Token; instancias publicas de Piped/Invidious estao
-                      mortas. A Action so passa se existir o secret YT_COOKIES no repositorio
-                      (Settings -> Secrets and variables -> Actions -> New repository secret),
-                      com o conteudo de um cookies.txt exportado do navegador logado no
-                      YouTube (extensao "Get cookies.txt LOCALLY"). Use uma CONTA DESCARTAVEL:
-                      o Google pode derrubar a sessao, e quem tiver o secret entra na conta.
-                      Sem o secret, o app avisa o bloqueio e sobram os tres caminhos abaixo.
-  🎤 microfone        celular: o app toca o trecho no video e ouve pelo microfone. Volume
-                      alto, sem fone, aparelho perto do alto-falante (ou de outro aparelho
-                      tocando a musica).
-  🖥 audio da guia     PC (Chrome/Edge): escolha ESTA guia na janela e marque "Compartilhar
-                      audio da guia". Som limpo, melhor resultado.
-  📁 arquivo de audio  o arquivo da musica (mp3/m4a/wav): o app analisa so o trecho do riff.
-                      Mais preciso de todos; o tempo do arquivo precisa bater com o do video.
-O resultado mostra as notas presentes no trecho (com oitava), o acorde provavel e a
-sequencia de nota mais forte por instante (ex.: E5(0.5s) G#5(0.5s) B5(0.5s)), desenhadas
-no piano. Fica salvo no riff. A analise (docs/analise.js) e a mesma no app e na Action.
-E uma leitura por espectro, nao um ouvido humano: funciona bem para linha de teclado ou
-guitarra e acordes simples; em trecho cheio (bateria, voz, baixo junto) lista as notas
-dominantes. Use como ponto de partida e confira no instrumento.
-Por que nao direto do player: o YouTube nao entrega o audio ao site (iframe de outra origem).
-Apagar um riff: botao 🗑 no proprio cartao.
+     Expiration: 90 dias ou 1 ano.
+O app pede o token e um PIN (minimo 6 caracteres). O token fica cifrado no aparelho e so
+abre com o PIN, em Ajustes > "Destravar com o PIN", uma vez por abertura do app. Travado,
+o app funciona normal e guarda as mudancas no aparelho; elas sobem quando destravar.
 
 INSTALAR NO CELULAR
 -------------------
-Chrome -> abrir o endereco -> menu ⋮ -> "Adicionar a tela inicial".
+Chrome -> abrir o endereco -> menu -> "Adicionar a tela inicial".
 
-SEGURANCA (o que esta feito e por que)
+RIFFS: QUE NOTAS A MUSICA ESTA TOCANDO
 --------------------------------------
-  - Fora dos buscadores: meta robots (noindex, nofollow, noarchive, noimageindex,
-    nosnippet) e docs/robots.txt. Limite: o GitHub Pages nao manda cabecalho X-Robots-Tag
-    e o robots.txt so vale na raiz do usuario (outro repositorio); a meta e o que segura.
-    O REPOSITORIO e publico e aparece na busca do GitHub (so plano pago evita).
-  - Content-Security-Policy na <meta>: script so o proprio (hash SHA-256, sem
-    'unsafe-inline') e o player do YouTube; conexoes so ao site e a api.github.com;
-    frames so do YouTube; nada de objetos, formularios ou <base>.
+Em cada riff (trecho do video, ex.: 1:48 a 1:54) o app detecta as notas por:
+  microfone            celular: toca o trecho no video e ouve pelo microfone. Volume alto,
+                       sem fone, aparelho perto do alto-falante.
+  audio da guia (PC)   Chrome/Edge: escolha ESTA guia e marque "Compartilhar audio da guia".
+  arquivo de audio     mp3/m4a/wav da musica; analisa so o trecho. O mais preciso.
+  pelo link do YouTube roda numa GitHub Action. Exige a sincronizacao ligada (a Action
+                       precisa do token para ser chamada) E o secret YT_COOKIES no
+                       repositorio, porque o YouTube barra os servidores do GitHub
+                       ("Sign in to confirm you're not a bot"). Sem os dois, use os outros.
+O resultado traz as notas do trecho (com oitava), o acorde provavel e a sequencia da nota
+mais forte por instante, desenhadas no piano. E leitura por espectro, nao ouvido humano:
+bom para linha de teclado/guitarra e acordes simples; em trecho cheio lista as dominantes.
+
+SEGURANCA
+---------
+  - Fora dos buscadores: meta robots e docs/robots.txt. O repositorio e publico.
+  - Content-Security-Policy na <meta>: script so do proprio site (o inline por hash
+    SHA-256) e do player do YouTube; conexoes so ao site, a api.github.com e ao leitor
+    r.jina.ai; frames so do YouTube.
     ATENCAO: mudou uma letra do script de docs/index.html? Rode "node scripts/csp.mjs"
-    antes de subir, senao a pagina abre em branco. O script ja normaliza CRLF -> LF.
-  - Token: fine-grained, um repositorio, Contents apenas, com validade. No aparelho fica
-    cifrado (AES-GCM, chave por PBKDF2 com 310 mil voltas a partir do PIN) e so existe
-    aberto na memoria da aba. Motivo: todos os sites *.github.io do mesmo usuario dividem a
-    mesma origem (o site do casamento le o mesmo localStorage). Pior caso se vazar:
-    alguem edita cifras.
-  - Tudo que vem do Cifra Club, do favorito ou do JSON e escapado antes de ir para a tela
-    (testado com <script> dentro da letra: vira texto).
-  - YouTube em modo privacidade (youtube-nocookie.com).
-  - Action: permissao so "contents: write", actions travadas por hash de commit, uma
-    execucao por vez, dispara so quem tem o token.
-  - Sem segredo em arquivo nenhum desta pasta.
+    antes de subir, senao a pagina abre em branco.
+  - Tudo que vem de fora (leitor, favorito, texto colado, arquivo de backup, JSON) e
+    escapado antes de ir para a tela. Testado com <script> dentro da letra: vira texto.
+  - O leitor publico e um terceiro: ele ve qual cifra voce pediu, nada mais. Se cair ou
+    mudar, o favorito e o texto colado continuam funcionando.
+  - Token (so se ligar a sincronizacao): fine-grained, um repositorio, com validade,
+    cifrado no aparelho (AES-GCM, chave por PBKDF2 a partir do PIN). Todos os sites
+    *.github.io do mesmo usuario dividem o mesmo armazenamento, por isso o PIN.
+  - Action: permissao so "contents: write", actions travadas por hash de commit.
 
 PUBLICAR MUDANCAS
 -----------------
-A pasta e um repositorio git ligado ao GitHub (gh ja autorizado nesta maquina):
-  node scripts/csp.mjs   (se mexeu no index.html)
-  git add -A ; git commit -m "..." ; git push
+A pasta e um repositorio git ligado ao GitHub:
+  node scripts/csp.mjs        (se mexeu no index.html)
+  git pull --rebase ; git add -A ; git commit -m "..." ; git push
 O Pages republica sozinho em 1 a 2 min.
 
 ARQUIVOS
 --------
-  docs/index.html                  o app (uma pagina so)
-  docs/manifest.json, sw.js, icone-*.png   instalacao como app e uso sem internet
-  docs/robots.txt, docs/.nojekyll  fora dos buscadores; Pages sem Jekyll
-  docs/dados/biblioteca.json       a biblioteca
-  docs/dados/ultimo-erro.json      ultimo erro da Action (o app le e mostra)
-  scripts/cifraclub.mjs            leitura da pagina do Cifra Club (mesma regra do app)
-  scripts/buscar.mjs               Action "buscar": le a pagina do Cifra Club -> resultado
-  scripts/notas.mjs                Action "notas": baixa o trecho do YouTube e analisa -> resultado
-  scripts/aplicar.mjs              grava o resultado na biblioteca (sempre sobre a versao mais nova)
-  docs/analise.js                  a analise de audio, compartilhada entre app e Action
-  scripts/csp.mjs                  recalcula o hash da CSP depois de editar o index
-  .github/workflows/buscar-cifra.yml   a Action
+  docs/index.html            o app (uma pagina so)
+  docs/cifraclub.js          leitura da pagina do Cifra Club e do texto colado (app e Action)
+  docs/analise.js            analise de audio dos riffs (app e Action)
+  docs/manifest.json, sw.js, icone-*.png   instalacao, compartilhar e uso sem internet
+  docs/robots.txt, docs/.nojekyll
+  docs/dados/biblioteca.json ponto de partida do app e destino da sincronizacao
+  docs/dados/ultimo-erro.json  ultimo erro da Action
+  scripts/csp.mjs            recalcula o hash da CSP
+  scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
+  .github/workflows/buscar-cifra.yml   a Action (notas do YouTube; a busca de cifra por
+                             la e barrada pelo Cifra Club e o app nao usa mais)

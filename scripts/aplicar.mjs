@@ -41,6 +41,7 @@ if (res.tipo === 'cifra') {
   const r = (it.riffs || []).find((x) => Math.abs(x.ini - res.ini) < 0.05 && Math.abs(x.fim - res.fim) < 0.05);
   if (!r) erro(`notas:${res.id}:${res.ini}-${res.fim}`, 'nao achei o riff com esse inicio/fim (foi editado enquanto analisava?)');
   r.det = res.det;
+  it.em = agora; // o app mescla por data: sem isso a versao do aparelho ganharia e as notas sumiriam
   console.log('notas gravadas no riff', r.nome || '', res.ini, '-', res.fim);
 } else {
   erro('?', 'resultado desconhecido: ' + res.tipo);

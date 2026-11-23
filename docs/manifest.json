@@ -1,7 +1,7 @@
 {
   "name": "Minhas Cifras",
   "short_name": "Cifras",
-  "description": "Cifras do Cifra Club simplificadas, transpostas e com riffs do YouTube",
+  "description": "Suas cifras do Cifra Club: simplificadas, transpostas e com riffs do YouTube",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,26 @@
   "theme_color": "#111111",
   "lang": "pt-BR",
   "icons": [
-    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+    {
+      "src": "icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

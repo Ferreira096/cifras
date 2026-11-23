@@ -22,10 +22,12 @@ if (!hashes.length) throw new Error('nenhum script inline encontrado');
 
 const csp = [
   "default-src 'none'",
-  `script-src ${hashes.join(' ')} https://www.youtube.com https://s.ytimg.com`,
+  // 'self' libera os modulos do proprio site (cifraclub.js, analise.js); o script inline entra pelo hash
+  `script-src 'self' ${hashes.join(' ')} https://www.youtube.com https://s.ytimg.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://i.ytimg.com",
-  "connect-src 'self' https://api.github.com",
+  // r.jina.ai: leitor publico que devolve a pagina do Cifra Club (busca por link, sem token)
+  "connect-src 'self' https://api.github.com https://r.jina.ai",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "manifest-src 'self'",
   "worker-src 'self'",
