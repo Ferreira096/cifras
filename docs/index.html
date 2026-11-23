@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-u3d3IkKEj5Ikm7i/yFv3egE5RrXNJGE3RbMlkLSGZtw=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-hQmykQVoEJeIEzjYlYqcdGUum04UFubXOYrquk2YETc=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
@@ -483,7 +483,8 @@ function limpaDet(d){ if(!d||typeof d!=='object') return null; const s=(x,n)=>ty
 function respostaDe(msgs,id){
   const meus=msgs.filter(m=>m.id===id), e=meus.find(m=>m.t==='erro'); if(e) return {erro:String(e.erro||'o computador não conseguiu analisar').slice(0,240)};
   const ps=meus.filter(m=>m.t==='resultado'&&typeof m.txt==='string');
-  if(ps.length){ const de=Math.min(40,+ps[0].de||1), partes=[]; for(let n=1;n<=de;n++){ const p=ps.find(x=>+x.n===n); if(!p) break; partes.push(p.txt); }
+  for(const origem of [...new Set(ps.map(x=>String(x.m||'')))]){ // dois computadores podem responder ao mesmo pedido: nao misturar as partes
+    const dele=ps.filter(x=>String(x.m||'')===origem), de=Math.min(40,+dele[0].de||1), partes=[]; for(let n=1;n<=de;n++){ const p=dele.find(x=>+x.n===n); if(!p) break; partes.push(p.txt); }
     if(partes.length===de){ let det=null; try{ det=limpaDet(JSON.parse(partes.join(''))); }catch(err){} return det?{det}:{erro:'O computador mandou uma resposta que não consegui ler.'}; } }
   return {recebido:meus.some(m=>m.t==='recebido'||m.t==='resultado')};
 }

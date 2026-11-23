@@ -88,26 +88,34 @@ NOTAS PELO LINK DO YOUTUBE, PEDINDO DO CELULAR
 ----------------------------------------------
 O navegador (celular ou PC) nao consegue baixar o audio do YouTube, e os servidores do GitHub
 sao barrados pelo YouTube. Um computador comum consegue. Por isso sao duas pecas:
-  no computador  pasta CIFRAS\notas-youtube (fora deste repositorio, nunca publicada) e o
-                 atalho CIFRAS\LIGAR NOTAS DO YOUTUBE.bat. Com a janela aberta, o programa
-                 (servidor.mjs) espera pedidos, baixa o audio (yt-dlp), corta o trecho (ffmpeg),
-                 roda a mesma analise do app (docs/analise.js) e devolve as notas.
+  no computador  pasta CIFRAS\notas-youtube (fora deste repositorio, nunca publicada). O
+                 programa (servidor.mjs) espera pedidos, baixa o audio (yt-dlp), corta o
+                 trecho (ffmpeg), roda a mesma analise do app (docs/analise.js) e devolve as
+                 notas. A pasta e autossuficiente: leva Node e Python dentro (runtime), entao
+                 funciona copiada para qualquer computador com Windows, sem instalar nada.
   no app         Ajustes > "Notas pelo link do YouTube": liga o aparelho ao computador.
-Ligar (uma vez por aparelho): abra o .bat no computador; ele mostra um QR code e um codigo
+Ligar o computador: INSTALAR NESTE COMPUTADOR.bat (abre sozinho a cada login, minimizado; sem
+administrador) ou LIGAR.bat (so desta vez). DESINSTALAR DESTE COMPUTADOR.bat desfaz.
+Ligar o celular (uma vez por aparelho): "PAREAR O CELULAR.html" mostra um QR code e um codigo
 (cifras-xxxx-xxxx-xxxx-xxxx). Aponte a camera do celular para o QR code e confirme, ou digite
-o codigo em Ajustes. "Testar a ligacao" diz se o computador esta respondendo.
-Usar: no riff, "pelo link do YouTube". Com o computador ligado, as notas chegam em 3 a 15 s.
-Com ele desligado, o pedido fica na fila por ate 12 horas (o app refaz o pedido sozinho por
-ate 3 dias, sempre que e aberto) e as notas aparecem no riff quando o computador atender.
+o codigo em Ajustes. "Testar a ligacao" diz se algum computador esta respondendo.
+Usar: no riff, "pelo link do YouTube". Com um computador ligado, as notas chegam em 3 a 15 s.
+Sem nenhum ligado, o pedido fica na fila por ate 12 horas (o app refaz o pedido sozinho por
+ate 3 dias, sempre que e aberto) e as notas aparecem no riff quando um computador atender.
+Nao depende de UM computador: copie a pasta notas-youtube inteira (com o config.json, para o
+codigo ser o mesmo) para outro computador e rode o INSTALAR la. Podem ficar varios ligados:
+eles se avisam pelo canal e combinam quem atende cada pedido; se um esta desligado, o outro
+assume depois de 1 s. Detalhes em notas-youtube\LEIA-ME.txt.
+Sem computador nenhum nao ha caminho pelo link: o YouTube barra os servidores de nuvem. So com
+o celular, use o microfone ou um arquivo de audio.
 Como conversam: por um canal publico de mensagens (ntfy.sh) cujo nome e o codigo. Sem conta,
 sem token, sem senha. Pelo canal passam so: id do video, inicio/fim e as notas detectadas.
 Limites no computador: trecho de ate 2 min, 80 analises novas por dia, uma de cada vez; o
 resultado de um trecho ja analisado sai da memoria, na hora. O audio dos 15 ultimos videos
 fica em notas-youtube\cache. Se o YouTube mudar e o download falhar, o programa atualiza o
 yt-dlp (uma vez por dia, no maximo) e tenta de novo.
-Trocar o codigo (se vazar): feche a janela e rode "node servidor.mjs --novo-codigo" na pasta
-notas-youtube; depois ligue os aparelhos de novo. Abrir o QR code de novo: "PAREAR O
-CELULAR.html" na mesma pasta.
+Trocar o codigo (se vazar): feche o programa e rode "LIGAR.bat --novo-codigo" na pasta
+notas-youtube; depois ligue os aparelhos de novo.
 
 SEGURANCA
 ---------
@@ -155,6 +163,7 @@ ARQUIVOS
   .github/workflows/buscar-cifra.yml   a Action. O app nao usa mais: o Cifra Club barra a
                              busca de cifra por la e o YouTube barra o download do audio.
 Fora do repositorio (so no computador):
-  ..\notas-youtube\servidor.mjs   atende os pedidos de notas feitos no celular
+  ..\notas-youtube\               programa que atende os pedidos de notas feitos no celular
+                                 (servidor.mjs, runtime, LIGAR/INSTALAR/DESINSTALAR, LEIA-ME)
   ..\notas-youtube\config.json    o codigo de pareamento (nao publicar)
-  ..\LIGAR NOTAS DO YOUTUBE.bat   abre o programa
+  ..\LIGAR NOTAS DO YOUTUBE.bat   atalho para notas-youtube\LIGAR.bat
