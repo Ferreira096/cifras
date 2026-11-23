@@ -7,6 +7,7 @@
 set -e -o pipefail
 SITE="https://ferreira096.github.io/cifras"
 RAW="__RAW__"
+T="${TMPDIR:-$PREFIX/tmp}"; mkdir -p "$T"   # no Termux nao existe /tmp
 ok() { echo "  [ok] $*"; }
 falhou() { echo "  [FALHOU] $*"; exit 1; }
 mascara() { sed -E 's/cifras-[a-z0-9]{4}(-[a-z0-9]{4}){3}/cifras-(codigo)/g'; }
@@ -27,19 +28,19 @@ ok "atalho do Termux:Widget criado"
 echo "=== 2. analise de um audio (tom de 440 Hz) ==="
 mkdir -p "$HOME/cifras-notas/cache"
 ffmpeg -v error -f lavfi -i "sine=frequency=440:duration=6" -c:a aac "$HOME/cifras-notas/cache/TESTEAUDIO1.m4a" </dev/null
-notas --teste TESTEAUDIO1 0 5 > /tmp/teste.txt 2>&1 || { cat /tmp/teste.txt; falhou "analise"; }
-tail -n 1 /tmp/teste.txt
-grep -q '"notas": "A4' /tmp/teste.txt || { cat /tmp/teste.txt; falhou "esperava La 4 (A4) como nota principal"; }
-grep -q 'analisado no celular' /tmp/teste.txt || falhou "o programa nao se reconheceu como Termux"
+notas --teste TESTEAUDIO1 0 5 > $T/teste.txt 2>&1 || { cat $T/teste.txt; falhou "analise"; }
+tail -n 1 $T/teste.txt
+grep -q '"notas": "A4' $T/teste.txt || { cat $T/teste.txt; falhou "esperava La 4 (A4) como nota principal"; }
+grep -q 'analisado no celular' $T/teste.txt || falhou "o programa nao se reconheceu como Termux"
 ok "ffmpeg + analise devolveram A4; origem = celular"
 
 echo "=== 3. pedido pelo canal, como o app faz ==="
-curl -fsSL "$RAW/scripts/teste-cliente.mjs" -o /tmp/cliente.mjs
-(CIFRAS_SEM_ABRIR=1 notas > /tmp/saida.txt 2>&1 &)
+curl -fsSL "$RAW/scripts/teste-cliente.mjs" -o $T/cliente.mjs
+(CIFRAS_SEM_ABRIR=1 notas > $T/saida.txt 2>&1 &)
 sleep 6
-if node /tmp/cliente.mjs "$HOME/cifras-notas/config.json" TESTEAUDIO1 0 5; then ok "o programa respondeu ao teste de ligacao e ao pedido"; CANAL=ok; else echo "  [aviso] sem resposta pelo canal (o ntfy.sh pode limitar os servidores do GitHub)"; CANAL=falhou; fi
+if node $T/cliente.mjs "$HOME/cifras-notas/config.json" TESTEAUDIO1 0 5; then ok "o programa respondeu ao teste de ligacao e ao pedido"; CANAL=ok; else echo "  [aviso] sem resposta pelo canal (o ntfy.sh pode limitar os servidores do GitHub)"; CANAL=falhou; fi
 notas --parar
-mascara < /tmp/saida.txt | sed 's/^/    | /'
+mascara < $T/saida.txt | sed 's/^/    | /'
 [ "$CANAL" = ok ] || falhou "canal"
 
 echo "=== 4. abrir o app (aqui nao ha Android; so nao pode quebrar) e ligar com o celular ==="
@@ -54,7 +55,7 @@ test ! -e "$HOME/.termux/boot/minhas-cifras-notas" || falhou "desinstalar"
 ok "desinstalar apagou"
 
 echo "=== 5. YouTube de verdade (informativo: em servidor de nuvem o esperado e ser barrado) ==="
-if notas --teste xINKo1kjnWo 108 114 > /tmp/yt.txt 2>&1; then echo "  baixou e analisou: $(tail -n 1 /tmp/yt.txt)"; else echo "  nao baixou: $(tail -n 1 /tmp/yt.txt | cut -c1-200)"; fi
+if notas --teste xINKo1kjnWo 108 114 > $T/yt.txt 2>&1; then echo "  baixou e analisou: $(tail -n 1 $T/yt.txt)"; else echo "  nao baixou: $(tail -n 1 $T/yt.txt | cut -c1-200)"; fi
 
 echo
 echo "TUDO CERTO no Termux (menos o que depende do aparelho)."
