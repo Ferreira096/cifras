@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-R7XWX8EdDWp0O1d5O6Vi4pTOV5bVgfcoXxjDyqFDKCE=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-wKw9/w8zlTLJBkiZhaV8rBZ/dA9LK18Unwe5f06McTM=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=48499b4c37"></script>
-<script type="module" src="analise.js?v=1f3b8f666c"></script>
+<script type="module" src="analise.js?v=c758da9151"></script>
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
@@ -327,13 +327,27 @@ function normalizaLib(j){
 }
 function lerLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||'null'); if(j&&Array.isArray(j.itens)) lib=normalizaLib(j);}catch(e){}}
 function gravarLocal(){try{localStorage.setItem(LS,JSON.stringify(lib)); return true;}catch(e){ toast('Sem espaço neste aparelho para guardar',true); return false; }}
+/* A cifra do aparelho vence a do site quando e mais nova, mas os riffs que so existem na do site
+   (os que ja vem prontos, ou feitos em outro aparelho) entram nela: por trecho, sem repetir, e
+   sem trazer de volta um riff que a pessoa apagou aqui (it.semRiff guarda os trechos apagados). */
+const chaveRiff=(r)=>(+r.ini).toFixed(1)+'-'+(+r.fim).toFixed(1);
+function herdaRiffs(meu,deLa){
+  if(!Array.isArray(deLa.riffs)||!deLa.riffs.length||(meu.video||'')!==(deLa.video||'')) return;
+  meu.riffs=Array.isArray(meu.riffs)?meu.riffs:[]; const fora=Array.isArray(meu.semRiff)?meu.semRiff:[]; let entrou=false;
+  for(const r of deLa.riffs){ if(!r||!(r.fim>r.ini)) continue;
+    const ja=meu.riffs.find(x=>Math.abs(x.ini-r.ini)<0.05&&Math.abs(x.fim-r.fim)<0.05);
+    if(ja){ if(!ja.det&&r.det) ja.det=r.det; continue; }
+    if(fora.includes(chaveRiff(r))) continue;
+    meu.riffs.push(JSON.parse(JSON.stringify(r))); entrou=true; }
+  if(entrou) meu.riffs.sort((a,b)=>a.ini-b.ini);
+}
 function mesclar(outro){
   outro=normalizaLib(outro);
   const ap=Object.assign({},outro.apagados); for(const k in lib.apagados) if(!ap[k]||lib.apagados[k]>ap[k]) ap[k]=lib.apagados[k];
   const vivo=(it)=>!(ap[it.id]&&ap[it.id]>=String(it.em||''));
   const deLa=new Map(outro.itens.map(i=>[i.id,i])), meus=new Set(lib.itens.map(i=>i.id)), lista=[];
   for(const o of outro.itens) if(!meus.has(o.id)&&vivo(o)) lista.push(o);            // novidades de fora entram no topo
-  for(const m of lib.itens){ const o=deLa.get(m.id); const melhor=(o&&String(o.em||'')>String(m.em||''))?o:m; if(vivo(melhor)) lista.push(melhor); }
+  for(const m of lib.itens){ const o=deLa.get(m.id); const melhor=(o&&String(o.em||'')>String(m.em||''))?o:m; if(o&&melhor===m) herdaRiffs(m,o); if(vivo(melhor)) lista.push(melhor); }
   lib={itens:lista,apagados:ap,v:Math.max(lib.v||0,outro.v)};
 }
 /* guarda uma cifra lida (link, favorito, compartilhar ou texto colado); devolve true se era nova */
@@ -817,7 +831,6 @@ function renderCelular(){
 function tomAtual(it){const t=tomTransposto(it.tom,(it.aj&&it.aj.n)||0); return t?t.nome:(it.tom||'');}
 
 /* ====================== viewer ====================== */
-let modoTab=(()=>{ try{ return localStorage.getItem('cifras.tab')==='guitarra'?'guitarra':'teclado'; }catch(e){ return 'teclado'; } })(); // preferencia do aparelho
 let acordeAtivo='', rolagem={on:false,vel:1,raf:0,acc:0,t:0}, loop={on:false,ini:0,fim:0,timer:0}, player=null, playerVideo='';
 
 function acordesVisiveis(it){
@@ -834,7 +847,6 @@ function renderCifra(it){
   // tablaturas: blocos de linhas "E|--3--" seguidas; no modo teclado viram linhas de teclas
   const textoDe=(l)=>l.every(s=>typeof s==='string')?l.join(''):null;
   const ehTab=(l)=>{ const x=textoDe(l); return x!=null&&!!window.CifraClub&&typeof CifraClub.ehLinhaDeTab==='function'&&CifraClub.ehLinhaDeTab(x); };
-  const temTab=it.linhas.some(ehTab);
   const {bemol}=acordesVisiveis(it);
   const partes=[]; let explicouTab=false;
   for(let i=0;i<it.linhas.length;i++){
@@ -842,7 +854,7 @@ function renderCifra(it){
     if(ehTab(l)){
       let j=i; while(j<it.linhas.length&&ehTab(it.linhas[j])) j++;
       const grupo=it.linhas.slice(i,j).map(textoDe);
-      let trilho=null; if(modoTab==='teclado'&&typeof CifraClub.tabEmTempos==='function'){ try{ trilho=CifraClub.tabEmTempos(grupo,it.aj.n,bemol); }catch(e){ trilho=null; } }
+      let trilho=null; if(typeof CifraClub.tabEmTempos==='function'){ try{ trilho=CifraClub.tabEmTempos(grupo,it.aj.n,bemol); }catch(e){ trilho=null; } }
       if(trilho){ partes.push(htmlTrilho(trilho)); if(!explicouTab){ explicouTab=true; partes.push('<div class="trilhoDica">Leia da esquerda para a direita: cada quadrinho é uma nota. Quanto mais alto, mais aguda (mais à direita no teclado). Quadrinhos na mesma coluna são tocados juntos; mais espaço depois de um quadrinho = espere mais; a barra vertical separa os compassos.</div>'); } }
       else for(const x of grupo) partes.push(`<div class="ln tab">${h(x)}</div>`);
       i=j-1; continue;
@@ -861,7 +873,6 @@ function renderCifra(it){
     <div class="tom"><button id="tomMenos">−</button><span class="val" id="tomVal">${h(tom||'?')}</span><button id="tomMais">+</button></div>
     <button id="btSimples" class="${it.aj.simples?'ligado':''}">Simplificar</button>
     <button id="btVideo" class="${vid?'':''}">▶ Video / Riffs</button>
-    ${temTab?`<button id="btTab" title="Trocar entre tablatura de teclado e de guitarra">Tab: ${modoTab==='teclado'?'teclado':'guitarra'}</button>`:''}
     <button id="fMenos" class="mini">A−</button><button id="fMais" class="mini">A+</button>
     <button id="btOrig" class="mini" ${it.aj.n?'':'disabled'}>Tom original</button>
   </div>
@@ -875,7 +886,6 @@ function renderCifra(it){
   app.querySelector('#tomMenos').onclick=()=>{it.aj.n=((it.aj.n-1)+12)%12; if(it.aj.n>6) it.aj.n-=12; salvar(it);};
   app.querySelector('#tomMais').onclick=()=>{it.aj.n=it.aj.n+1; if(it.aj.n>6) it.aj.n-=12; salvar(it);};
   app.querySelector('#btOrig').onclick=()=>{it.aj.n=0; salvar(it);};
-  if(app.querySelector('#btTab')) app.querySelector('#btTab').onclick=()=>{ modoTab=modoTab==='teclado'?'guitarra':'teclado'; try{localStorage.setItem('cifras.tab',modoTab);}catch(e){} render(); };
   app.querySelector('#btSimples').onclick=()=>{it.aj.simples=!it.aj.simples; salvar(it);};
   app.querySelector('#fMenos').onclick=()=>{it.aj.fonte=Math.max(11,it.aj.fonte-1); salvar(it);};
   app.querySelector('#fMais').onclick=()=>{it.aj.fonte=Math.min(28,it.aj.fonte+1); salvar(it);};
@@ -919,14 +929,10 @@ function htmlTrilho(t,dur){
   return `<div class="trilho${dur?' dur':''}" style="--h:${t.linhas.length*R}px" role="img" aria-label="${h('Notas em ordem: '+comp.map(c=>c.map(x=>x.i.map(i=>t.linhas[i].nome).join('+')).join(' ')).join(' | '))}">`
     +comp.filter(c=>c.length).map(c=>`<span class="cp">${c.map(col).join('')}</span>`).join('')+'</div>';
 }
-function htmlDeteccao(det,T){
-  const A=window.Analise; if(!T.ok) return `<div class="notas">${h(det.resumo||det.notas||'')}</div>`;
-  const base=A.notasBase(det,T.n,T.bemol), trilho=typeof A.temposDeNotas==='function'?A.temposDeNotas(det,T.n,T.bemol):null, todas=T.t(det.notas||''), bx=det.baixo?A.notasBase({seq:det.baixo},T.n,T.bemol):[], ac=det.acorde?T.t(det.acorde.replace(/m$/,''))+(/m$/.test(det.acorde)?'m':''):'';
-  return `<div class="baseNotas"><span class="rotBase">Notas base do riff</span>${base.map(x=>`<b>${h(x)}</b>`).join('')}</div>
-    ${bx.length?`<div class="baseNotas grave"><span class="rotBase">Baixo (mão esquerda)</span>${bx.map(x=>`<b>${h(x)}</b>`).join('')}</div>`:''}
-    ${trilho?`${htmlTrilho(trilho,true)}<div class="trilhoDica" style="margin-bottom:8px">Na ordem em que tocam, da esquerda para a direita. Mais alto = mais aguda; quadrinho mais largo = nota mais longa.</div>`:''}
-    <div class="pianinho">${pianoSvg(marcasDeNotas(base.join(' ')),{lb:12,h:40})}</div>
-    <div class="dica" style="margin:0">${ac?'Acorde provável: '+h(ac)+' · ':''}todas as notas ouvidas: ${h(todas)}</div>`;
+function htmlDeteccao(det,T){ // so a sequencia de notas do riff, na ordem em que entram, no tom da tela
+  const A=window.Analise; if(!T.ok||typeof A.sequenciaNomes!=='function') return `<div class="notas">${h(det.resumo||det.notas||'')}</div>`;
+  const seq=A.sequenciaNomes(det,T.n,T.bemol);
+  return `<div class="baseNotas" role="img" aria-label="${h('Sequência de notas: '+seq.join(' '))}"><span class="rotBase">Sequência</span>${seq.map(x=>`<b>${h(x)}</b>`).join('')}</div>`;
 }
 function painelRiffs(it){
   const vid=it.video||'', T=notasNoTom(it), tomTela=tomAtual(it);
@@ -941,7 +947,7 @@ function painelRiffs(it){
         <button class="mini det" data-i="${i}" data-modo="aba">áudio da guia (PC)</button>
         <button class="mini det" data-i="${i}" data-modo="arquivo">arquivo de áudio</button></div>
       <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r), ped=pedidoDoRiff(it,r); return (det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:'')+(ped?`<div class="aviso">Pedido das notas enviado ${h(horaDoPedido(ped))}. Aguardando o programa de notas: ele precisa estar aberto (o Termux no celular ou a janela "LIGAR NOTAS DO YOUTUBE" no computador). O pedido vale por 12 horas e as notas aparecem aqui quando chegarem.</div>`:''); })()}</div>
-      ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas${T.n?` (no tom da tela, ${h(tomTela)})`:''}:</div><div class="notas" style="margin-top:2px">${h(T.t(r.notas))}</div><div class="pianinho">${pianoSvg(marcasDeNotas(T.t(r.notas)),{lb:12,h:40})}</div>`:''}
+      ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas${T.n?` (no tom da tela, ${h(tomTela)})`:''}:</div><div class="notas" style="margin-top:2px">${h(T.t(r.notas))}</div>`:''}
       ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
     </div>`).join('')}</div>
     <input type="file" id="arqAudio" accept="audio/*,video/mp4,video/webm" class="oculto">
@@ -978,9 +984,10 @@ function ligarRiffs(it){
     it.riffs.sort((a,b)=>a.ini-b.ini); limpar(); salvar(it); toast('Riff salvo');
   };
   q('#rCancelar').onclick=limpar;
-  q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ it.riffs.splice(editando,1); limpar(); salvar(it); } };
+  const esquece=(r)=>{ it.semRiff=(Array.isArray(it.semRiff)?it.semRiff:[]).filter(k=>k!==chaveRiff(r)).concat(chaveRiff(r)).slice(-40); }; // riff apagado nao volta do site
+  q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ esquece(it.riffs[editando]); it.riffs.splice(editando,1); limpar(); salvar(it); } };
   app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=notasNoTom(it).t(r.notas||''); q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
-  app.querySelectorAll('.apagarRiff').forEach(b=>b.onclick=()=>{ const r=it.riffs[+b.dataset.i]; if(!confirm('Apagar o riff "'+(r.nome||('Riff '+(+b.dataset.i+1)))+'"?')) return; pararLoop(); it.riffs.splice(+b.dataset.i,1); if(editando===+b.dataset.i) limpar(); salvar(it); toast('Riff apagado'); });
+  app.querySelectorAll('.apagarRiff').forEach(b=>b.onclick=()=>{ const r=it.riffs[+b.dataset.i]; if(!confirm('Apagar o riff "'+(r.nome||('Riff '+(+b.dataset.i+1)))+'"?')) return; pararLoop(); esquece(r); it.riffs.splice(+b.dataset.i,1); if(editando===+b.dataset.i) limpar(); salvar(it); toast('Riff apagado'); });
   const mostrarDet=(i,r,d,modo)=>{ const tx=Analise.textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,baixo:tx.baixo,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; salvar(it); };
   const rodarDet=async(i,modo,arquivo)=>{
     const r=it.riffs[i], caixa=q('#det'+i); const prog=(t)=>{ caixa.innerHTML='<div class="aviso">'+h(t)+'</div>'; };

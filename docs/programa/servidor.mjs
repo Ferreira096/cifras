@@ -156,6 +156,12 @@ async function preparar() {
   try { // repositorio ao lado: traz a versao atual da analise para a copia da pasta
     if (fs.existsSync(ARQ_REPO)) { const novo = fs.readFileSync(ARQ_REPO); if (!fs.existsSync(ARQ_ANALISE) || !novo.equals(fs.readFileSync(ARQ_ANALISE))) fs.writeFileSync(ARQ_ANALISE, novo); }
   } catch (e) {}
+  if (!WIN) { // celular: a analise melhora no site; traz a versao atual ao abrir, se a internet deixar
+    try {
+      const r = await fetch(SITE + 'analise.js', { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+      if (r.ok) { const novo = Buffer.from(await r.arrayBuffer()); if (novo.length > 4000 && novo.includes('function analisarPCM') && !(fs.existsSync(ARQ_ANALISE) && novo.equals(fs.readFileSync(ARQ_ANALISE)))) { fs.writeFileSync(ARQ_ANALISE, novo); console.log('  (analise atualizada pelo site)'); } }
+    } catch (e) {}
+  }
   if (!fs.existsSync(ARQ_ANALISE)) throw new Error('pasta incompleta: falta analise.mjs');
   if (WIN) {
     const r = await py(['-c', 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())']);

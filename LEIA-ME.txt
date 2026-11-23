@@ -51,7 +51,8 @@ compassos ficam separados por uma barra e quebram de linha inteiros (nada de rol
 lado). As notas acompanham a mudanca de tom. (Antes era um bloco de tracos com uma linha por
 tecla, "E4 |--o---"; foi trocado em 23/11/2026 porque era dificil de ler.)
 Oitava em som real: 1a corda solta = E4 (o Mi logo acima do Do central).
-O botao "Tab: teclado / guitarra", na barra da cifra, volta para a tablatura original.
+So existe a versao de teclado: o botao que voltava para a tablatura de guitarra saiu em
+23/11/2026, a pedido.
 Limites: assume afinacao padrao (ou a indicada no rotulo da corda, como drop D); ligados,
 bends e slides viram notas simples; o capotraste nao e somado, como nos acordes.
 
@@ -68,20 +69,33 @@ Em cada riff (trecho do video, ex.: 1:48 a 1:54) o app detecta as notas por:
   arquivo de audio     mp3/m4a/wav da musica; analisa so o trecho. O mais preciso.
   pelo link do YouTube o celular pede e um computador seu responde (ver abaixo). E o caminho
                        para o dia a dia no celular: toca no botao e as notas chegam em segundos.
-O resultado, em cada riff:
-  Notas base do riff   as notas da linha do meio/agudo (o que a guitarra ou o teclado faz),
-                       na ordem em que aparecem, sem repetir. E o que tocar na mao direita.
-  Baixo (mao esquerda) as notas da linha grave (abaixo do Si 3). Numa gravacao de banda o
-                       baixo domina o som; por isso ele e separado do riff.
-  Desenho no tempo     os mesmos quadrinhos da tablatura de teclado; aqui o quadrinho mais
-                       largo e a nota mais longa.
-  Acorde provavel e a lista de todas as notas ouvidas.
+O resultado, em cada riff, e so a SEQUENCIA DE NOTAS: os nomes das notas na ordem em que
+entram (ex.: B F# F# G# D# F# C# D# B). Nota repetida aparece repetida. Baixo, desenho no
+tempo, teclado e acorde provavel sairam da tela em 23/11/2026, a pedido; a deteccao continua
+guardando tudo (campos seq, baixo, acorde).
 AS NOTAS ACOMPANHAM O TOM: detectadas ou digitadas, elas ficam guardadas no tom original da
 cifra e aparecem no tom que estiver na tela. Mudou o tom, o riff muda junto. Ao digitar,
 escreva no tom da tela.
-E leitura por espectro, nao ouvido humano: boa para linha de teclado/guitarra e acordes
-simples; em trecho cheio aponta as notas dominantes (pode entrar uma nota da voz). Use como
-ponto de partida e confira no instrumento.
+QUANTO A DETECCAO ACERTA (medido em 23/11/2026; refazer com scripts/avalia)
+  node scripts/avalia/avalia.mjs        12 melodias sinteticas com gabarito exato (piano,
+                                        guitarra distorcida, teclado, com e sem baixo, bateria
+                                        e teclado de fundo): 100 de 103 notas = 97% (antes 89%).
+  node scripts/avalia/avalia-real.mjs   6 riffs famosos baixados do YouTube, comparados com as
+                                        notas publicadas: 51 de 76 = 67% (antes 59%).
+      Seven Nation Army (riff grave sozinho)        7/7
+      Sweet Child O' Mine (guitarra sozinha)       15/16
+      Fur Elise (piano solo, notas rapidas)         6/9
+      Come As You Are (guitarra com efeito + baixo) 10/16
+      Clocks (arpejo de piano com pedal + banda)    7/16
+      Smoke on the Water (duas notas juntas)        6/12
+Leitura honesta: pega certo quando o riff esta sozinho ou bem na frente (guitarra ou teclado
+tocando uma nota por vez). Erra em arpejo com as notas soando juntas, em notas tocadas ao
+mesmo tempo (acorde, quarta), em instrumento com muito efeito e quando a voz ou outro
+instrumento esta mais forte que o riff. Em trecho de banda cheia, confira no instrumento e
+corrija em "editar" (as notas digitadas valem mais que as detectadas).
+Riffs que ja vem prontos: os riffs gravados em docs/dados/biblioteca.json entram na cifra que
+ja esta no aparelho (por trecho, sem trocar a cifra nem trazer de volta riff apagado). E assim
+que o riff do Poderoso Nome (1:48 a 1:54) chega salvo, com a sequencia.
 
 Deteccoes prontas: docs/dados/deteccoes.json guarda analises feitas fora do aparelho (video
 + inicio + fim -> notas). O app mostra a que casar com o riff que ainda nao tem deteccao
@@ -191,6 +205,7 @@ ARQUIVOS
   docs/programa/servidor.mjs  o programa que atende os pedidos de notas (celular e computador).
                              E a FONTE: a copia em ..\notas-youtube e trazida daqui pelo LIGAR.bat
   docs/programa/instalar-termux.sh   instalador para o Termux (Android)
+  scripts/avalia/            mede a deteccao contra gabaritos (os audios ficam fora do repositorio)
   scripts/teste-termux.sh, teste-cliente.mjs, .github/workflows/testar-termux.yml
                              teste do instalador e do programa dentro de um Termux
   scripts/csp.mjs            recalcula o hash da CSP
