@@ -48,6 +48,6 @@ console.log('trecho:', (pcm.length / 22050).toFixed(1), 's de audio');
 let d;
 try { d = analisarPCM(pcm, 22050); } catch (e) { falha(e.message); }
 const tx = textoDeteccao(d);
-const det = { notas: tx.notas, seq: tx.seq, acorde: d.acorde, resumo: tx.resumo, modo: 'youtube', em: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) };
+const det = { notas: tx.notas, seq: tx.seq, baixo: tx.baixo, acorde: d.acorde, resumo: tx.resumo, modo: 'youtube', em: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) };
 fs.writeFileSync(SAIDA, JSON.stringify({ tipo: 'notas', id, ini, fim, det }));
 console.log('ok:', tx.resumo.replace(/\n/g, ' / '));

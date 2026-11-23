@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Mw4XLyspwOa3AVgVCW38nGVoYOlv6L8WnBhMnqaDDYk=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Yv9m5PP5rz7zjU6021hiPn7xtIKur+Nj3JwRkozf4BQ=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
-<script type="module" src="analise.js?v=bd06e16cd4"></script>
+<script type="module" src="analise.js?v=e4d77c81fa"></script>
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
@@ -108,6 +108,13 @@ details summary{cursor:pointer;font-size:13px;color:var(--sec);margin-top:4px}
 .detectar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .detResultado .aviso{margin:8px 0 0}
 .detResultado .notas{white-space:pre-wrap;font-size:14px}
+.baseNotas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 8px}
+.baseNotas.grave{margin-top:-2px}
+.baseNotas.grave b{background:var(--bg3);color:var(--tx);border:1px solid var(--linha)}
+.baseNotas .rotBase{font-size:12px;color:var(--tx2);margin-right:2px}
+.baseNotas b{font-family:var(--mono);font-size:16px;color:#111;background:var(--acorde);border-radius:6px;padding:2px 8px;min-width:30px;text-align:center}
+.rolo{font-family:var(--mono);font-size:13px;line-height:1.35;white-space:pre;overflow-x:auto;color:#b7b7b7;margin:0 0 8px;padding-bottom:4px}
+.rolo .nt{color:var(--acorde);font-weight:700}
 .form{display:grid;gap:8px;margin-top:10px}
 .form label{font-size:12px;color:var(--tx2)}
 .form .linha2{display:flex;gap:8px;align-items:center}
@@ -742,8 +749,26 @@ function menuCifra(it){
 }
 
 /* ====================== YouTube / riffs ====================== */
+/* As notas dos riffs ficam guardadas no tom original da cifra e aparecem no tom da tela. */
+function notasNoTom(it){
+  const n=(it.aj&&+it.aj.n)||0, bemol=acordesVisiveis(it).bemol, A=window.Analise, ok=!!(A&&typeof A.transporNotas==='function');
+  return {n, bemol, ok, t:(x)=>ok?A.transporNotas(x,n,bemol):String(x||''), volta:(x)=>(ok&&n)?A.transporNotas(x,-n,false):String(x||'')};
+}
+/* deteccoes feitas fora do aparelho (dados/deteccoes.json): valem para o riff do mesmo video e trecho que ainda nao tem a sua */
+let prontas=[];
+async function carregarProntas(){ try{ const r=await fetch('dados/deteccoes.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return false; const j=await r.json(); if(Array.isArray(j.itens)){ prontas=j.itens.filter(p=>p&&p.det&&typeof p.video==='string'); return prontas.length>0; } }catch(e){} return false; }
+function detPronta(it,r){ const p=prontas.find(x=>x.video===it.video&&Math.abs(x.ini-r.ini)<0.6&&Math.abs(x.fim-r.fim)<0.6); return p?p.det:null; }
+function htmlDeteccao(det,T){
+  const A=window.Analise; if(!T.ok) return `<div class="notas">${h(det.resumo||det.notas||'')}</div>`;
+  const base=A.notasBase(det,T.n,T.bemol), rolo=A.roloDeNotas(det,T.n,T.bemol), todas=T.t(det.notas||''), bx=det.baixo?A.notasBase({seq:det.baixo},T.n,T.bemol):[], ac=det.acorde?T.t(det.acorde.replace(/m$/,''))+(/m$/.test(det.acorde)?'m':''):'';
+  return `<div class="baseNotas"><span class="rotBase">Notas base do riff</span>${base.map(x=>`<b>${h(x)}</b>`).join('')}</div>
+    ${bx.length?`<div class="baseNotas grave"><span class="rotBase">Baixo (mão esquerda)</span>${bx.map(x=>`<b>${h(x)}</b>`).join('')}</div>`:''}
+    ${rolo?`<div class="rolo">${rolo.map(r=>`<div><span class="nt">${h(r.nota.padEnd(3,' '))}</span>|${h(r.corpo)}</div>`).join('')}</div>`:''}
+    <div class="pianinho">${pianoSvg(marcasDeNotas(base.join(' ')),{lb:12,h:40})}</div>
+    <div class="dica" style="margin:0">${ac?'Acorde provável: '+h(ac)+' · ':''}todas as notas ouvidas: ${h(todas)}</div>`;
+}
 function painelRiffs(it){
-  const vid=it.video||'';
+  const vid=it.video||'', T=notasNoTom(it), tomTela=tomAtual(it);
   return `<h2><span>Riffs (YouTube)</span>${vid?`<button class="mini" id="btTrocarVideo">trocar video</button>`:''}</h2>
   ${vid?'':`<div class="form"><label>Cole o link do YouTube desta musica</label><div class="linha2"><input id="ytLink" type="url" inputmode="url" placeholder="https://youtu.be/..."><button class="pri" id="btYt">OK</button></div></div>`}
   ${vid?`<div id="riffs">${it.riffs.map((r,i)=>`<div class="riff" data-i="${i}">
@@ -754,8 +779,8 @@ function painelRiffs(it){
         <button class="mini det" data-i="${i}" data-modo="mic">microfone</button>
         <button class="mini det" data-i="${i}" data-modo="aba">áudio da guia (PC)</button>
         <button class="mini det" data-i="${i}" data-modo="arquivo">arquivo de áudio</button></div>
-      <div class="detResultado" id="det${i}">${r.det?`<div class="notas">${h(r.det.resumo)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.det.notas),{lb:12,h:40})}</div><div class="dica" style="margin:0">detectado em ${h(r.det.em||'')} · ${h(r.det.modo||'')}</div>`:''}</div>
-      ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas:</div><div class="notas" style="margin-top:2px">${h(r.notas)}</div><div class="pianinho">${pianoSvg(marcasDeNotas(r.notas),{lb:12,h:40})}</div>`:''}
+      <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r); return det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:''; })()}</div>
+      ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas${T.n?` (no tom da tela, ${h(tomTela)})`:''}:</div><div class="notas" style="margin-top:2px">${h(T.t(r.notas))}</div><div class="pianinho">${pianoSvg(marcasDeNotas(T.t(r.notas)),{lb:12,h:40})}</div>`:''}
       ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
     </div>`).join('')}</div>
     <input type="file" id="arqAudio" accept="audio/*,video/mp4,video/webm" class="oculto">
@@ -764,7 +789,7 @@ function painelRiffs(it){
       <input id="rNome" placeholder="Nome (ex.: Intro teclado, virada do refrao)">
       <div class="linha2"><label style="width:42px">Inicio</label><input id="rIni" placeholder="0:00.0" inputmode="decimal"><button class="mini" id="rIniAgora">agora</button></div>
       <div class="linha2"><label style="width:42px">Fim</label><input id="rFim" placeholder="0:00.0" inputmode="decimal"><button class="mini" id="rFimAgora">agora</button></div>
-      <label>Notas (ex.: E G# B  F# A C#  — vira desenho no piano; use E4/G#5 para a oitava)</label>
+      <label>Notas no tom da tela${tomTela?` (${h(tomTela)})`:''}. Ex.: E G# B  F# A C#. Elas mudam junto quando você muda o tom; use E4/G#5 para indicar a oitava.</label>
       <textarea id="rNotas" placeholder="E G# B | F# ..."></textarea>
       <input id="rObs" placeholder="Observacao (dedilhado, mao esquerda, etc.)">
       <div class="linha2"><span style="font-size:12px;color:var(--tx2)">Velocidade</span><div class="vel">${[0.5,0.75,1].map(v=>`<button class="mini velb ${v===1?'ligado':''}" data-v="${v}">${v}x</button>`).join('')}</div>
@@ -785,16 +810,17 @@ function ligarRiffs(it){
   app.querySelectorAll('.velb').forEach(b=>b.onclick=()=>{velocidade=+b.dataset.v; app.querySelectorAll('.velb').forEach(x=>x.classList.toggle('ligado',x===b)); if(player&&player.setPlaybackRate) player.setPlaybackRate(velocidade);});
   const limpar=()=>{editando=-1; q('#formTitulo').textContent='Novo riff'; ['#rNome','#rIni','#rFim','#rNotas','#rObs'].forEach(s=>q(s).value=''); q('#rCancelar').classList.add('oculto'); q('#rApagar').classList.add('oculto'); q('#rSalvar').textContent='Salvar riff';};
   q('#rSalvar').onclick=()=>{
-    const r={nome:q('#rNome').value.trim(),ini:parseT(q('#rIni').value),fim:parseT(q('#rFim').value),notas:q('#rNotas').value.trim(),obs:q('#rObs').value.trim()};
+    const r={nome:q('#rNome').value.trim(),ini:parseT(q('#rIni').value),fim:parseT(q('#rFim').value),notas:notasNoTom(it).volta(q('#rNotas').value.trim()),obs:q('#rObs').value.trim()};
+    const velho=editando>=0?it.riffs[editando]:null; if(velho&&velho.det&&Math.abs(velho.ini-r.ini)<0.05&&Math.abs(velho.fim-r.fim)<0.05) r.det=velho.det; // mesmo trecho: a deteccao continua valendo
     if(r.fim<=r.ini) r.fim=r.ini+8;
     if(editando>=0) it.riffs[editando]=r; else it.riffs.push(r);
     it.riffs.sort((a,b)=>a.ini-b.ini); limpar(); salvar(it); toast('Riff salvo');
   };
   q('#rCancelar').onclick=limpar;
   q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ it.riffs.splice(editando,1); limpar(); salvar(it); } };
-  app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=r.notas||''; q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
+  app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=notasNoTom(it).t(r.notas||''); q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
   app.querySelectorAll('.apagarRiff').forEach(b=>b.onclick=()=>{ const r=it.riffs[+b.dataset.i]; if(!confirm('Apagar o riff "'+(r.nome||('Riff '+(+b.dataset.i+1)))+'"?')) return; pararLoop(); it.riffs.splice(+b.dataset.i,1); if(editando===+b.dataset.i) limpar(); salvar(it); toast('Riff apagado'); });
-  const mostrarDet=(i,r,d,modo)=>{ const tx=Analise.textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; salvar(it); };
+  const mostrarDet=(i,r,d,modo)=>{ const tx=Analise.textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,baixo:tx.baixo,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; salvar(it); };
   const rodarDet=async(i,modo,arquivo)=>{
     const r=it.riffs[i], caixa=q('#det'+i); const prog=(t)=>{ caixa.innerHTML='<div class="aviso">'+h(t)+'</div>'; };
     try{ const d=arquivo?await analisarArquivo(r,arquivo,prog):await captarTrecho(r,modo,prog); mostrarDet(i,r,d,modo==='mic'?'microfone':modo==='aba'?'audio da guia':'arquivo '+arquivo.name); }
@@ -833,6 +859,7 @@ function iniciar(){
   if(comp==='?') setTimeout(()=>toast('O que foi compartilhado não é um link de cifra do Cifra Club',true),300);
   else if(comp){ pendenteAdd=comp; history.replaceState(null,'','#/'); }
   render();
+  carregarProntas().then(tem=>{ const el=document.activeElement; if(tem&&rota().tela==='cifra'&&!(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName))&&!loop.on) render(); });
   carregarServidor().then(mudou=>{ const el=document.activeElement; const digitando=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName); if(mudou&&!digitando&&rota().tela!=='colar'&&!document.querySelector('#btAdd:disabled')) render(); });
 }
 // modulos (type=module) rodam antes do DOMContentLoaded: quando iniciar() roda, CifraClub e Analise ja existem

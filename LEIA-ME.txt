@@ -67,9 +67,24 @@ Em cada riff (trecho do video, ex.: 1:48 a 1:54) o app detecta as notas por:
                        precisa do token para ser chamada) E o secret YT_COOKIES no
                        repositorio, porque o YouTube barra os servidores do GitHub
                        ("Sign in to confirm you're not a bot"). Sem os dois, use os outros.
-O resultado traz as notas do trecho (com oitava), o acorde provavel e a sequencia da nota
-mais forte por instante, desenhadas no piano. E leitura por espectro, nao ouvido humano:
-bom para linha de teclado/guitarra e acordes simples; em trecho cheio lista as dominantes.
+O resultado, em cada riff:
+  Notas base do riff   as notas da linha do meio/agudo (o que a guitarra ou o teclado faz),
+                       na ordem em que aparecem, sem repetir. E o que tocar na mao direita.
+  Baixo (mao esquerda) as notas da linha grave (abaixo do Si 3). Numa gravacao de banda o
+                       baixo domina o som; por isso ele e separado do riff.
+  Desenho no tempo     uma linha por tecla, "o" onde a nota entra e "=" enquanto dura.
+  Acorde provavel e a lista de todas as notas ouvidas.
+AS NOTAS ACOMPANHAM O TOM: detectadas ou digitadas, elas ficam guardadas no tom original da
+cifra e aparecem no tom que estiver na tela. Mudou o tom, o riff muda junto. Ao digitar,
+escreva no tom da tela.
+E leitura por espectro, nao ouvido humano: boa para linha de teclado/guitarra e acordes
+simples; em trecho cheio aponta as notas dominantes (pode entrar uma nota da voz). Use como
+ponto de partida e confira no instrumento.
+
+Deteccoes prontas: docs/dados/deteccoes.json guarda analises feitas fora do aparelho (video
++ inicio + fim -> notas). O app mostra a que casar com o riff que ainda nao tem deteccao
+propria. A do exemplo (Poderoso Nome, clipe oficial, 1:48 a 1:54) foi feita no computador,
+que consegue baixar o audio do YouTube (os servidores do GitHub nao conseguem).
 
 SEGURANCA
 ---------
@@ -104,6 +119,7 @@ ARQUIVOS
   docs/robots.txt, docs/.nojekyll
   docs/dados/biblioteca.json ponto de partida do app e destino da sincronizacao
   docs/dados/ultimo-erro.json  ultimo erro da Action
+  docs/dados/deteccoes.json   notas de riffs analisadas fora do aparelho
   scripts/csp.mjs            recalcula o hash da CSP
   scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
   .github/workflows/buscar-cifra.yml   a Action (notas do YouTube; a busca de cifra por

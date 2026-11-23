@@ -1,0 +1,18 @@
+{
+ "_": "Deteccoes feitas fora do aparelho (o YouTube nao entrega o audio ao site). O app mostra a que casar com o video e o trecho do riff quando o riff ainda nao tem deteccao propria. Notas no tom da gravacao.",
+ "itens": [
+  {
+   "video": "xINKo1kjnWo",
+   "ini": 108,
+   "fim": 114,
+   "det": {
+    "notas": "E2 B3 D#6 F#5 C#4 G#4",
+    "seq": "F#4(1.1s) C#4(0.3s) B3(1.2s) G#4(1.0s) D#4(0.2s) D#5(0.2s) F#4(0.4s) C#4(0.5s) D#5(0.2s) B3(0.7s)",
+    "baixo": "D#2(0.3s) D2(0.2s) D#2(0.5s) F#2(0.3s) E2(0.7s) D#2(0.2s) E2(1.3s) D#2(0.2s) E2(0.5s) F2(0.4s) E2(1.1s)",
+    "acorde": "E",
+    "modo": "vídeo do YouTube, analisado no computador",
+    "em": "23/11/2026"
+   }
+  }
+ ]
+}
