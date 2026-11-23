@@ -41,6 +41,17 @@ O app pede o token e um PIN (minimo 6 caracteres). O token fica cifrado no apare
 abre com o PIN, em Ajustes > "Destravar com o PIN", uma vez por abertura do app. Travado,
 o app funciona normal e guarda as mudancas no aparelho; elas sobem quando destravar.
 
+TABLATURA DE TECLADO
+--------------------
+As tablaturas do Cifra Club sao de guitarra/violao (seis cordas, numero = casa). O app
+converte cada casa na nota que ela soa e redesenha o trecho com uma linha por tecla, da
+mais aguda para a mais grave: o "o" marca quando tocar, notas na mesma coluna sao juntas,
+e as barras de compasso ficam no lugar. As notas acompanham a mudanca de tom.
+Oitava em som real: 1a corda solta = E4 (o Mi logo acima do Do central).
+O botao "Tab: teclado / guitarra", na barra da cifra, volta para a tablatura original.
+Limites: assume afinacao padrao (ou a indicada no rotulo da corda, como drop D); ligados,
+bends e slides viram notas simples; o capotraste nao e somado, como nos acordes.
+
 INSTALAR NO CELULAR
 -------------------
 Chrome -> abrir o endereco -> menu -> "Adicionar a tela inicial".

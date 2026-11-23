@@ -130,5 +130,53 @@ function parseTexto(texto) {
   return linhas.filter((l, i) => l.length || (i > 0 && linhas[i - 1].length));
 }
 
-export { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde };
-globalThis.CifraClub = { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde };
+/* ---- tablatura de guitarra/violao -> teclado ----
+   Cada casa vira a nota que ela soa (afinacao padrao, som real: 1a corda solta = E4), e o
+   bloco e redesenhado com UMA LINHA POR TECLA, da mais aguda para a mais grave, mantendo as
+   colunas (o tempo) e as barras de compasso. Notas na mesma coluna = tocadas juntas. */
+const AFINACAO = [64, 59, 55, 50, 45, 40]; // e B G D A E
+const PC = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+const N_SUST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], N_BEMOL = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const RE_TAB = /^\s*([A-Ga-g][#b]?)\s*\|(.*)$/;
+function ehLinhaDeTab(txt) {
+  const m = RE_TAB.exec(String(txt || ''));
+  if (!m || m[2].length < 4) return false;
+  const corpo = m[2].replace(/\s+$/, '');
+  const tracos = (corpo.match(/-/g) || []).length, validos = (corpo.match(/[-0-9|hpbrxst~/\\^()<>.=* ]/gi) || []).length;
+  return tracos >= corpo.length * 0.4 && validos >= corpo.length * 0.9;
+}
+function tabParaTeclado(textos, semitons, bemol) {
+  const linhas = textos.map((t) => { const m = RE_TAB.exec(t); return m ? { rot: m[1][0].toUpperCase() + m[1].slice(1), corpo: m[2].replace(/\s+$/, '') } : null; }).filter(Boolean);
+  if (!linhas.length) return null;
+  // afinacao de cada linha: segue a padrao de cima para baixo; rotulo diferente (drop D etc.) vai para a nota mais proxima
+  let pos = 0;
+  for (const l of linhas) {
+    const pc = PC[l.rot]; let base = null;
+    if (pc != null) for (let j = pos; j < AFINACAO.length; j++) if (AFINACAO[j] % 12 === pc) { base = AFINACAO[j]; pos = j + 1; break; }
+    if (base == null) { const esp = AFINACAO[Math.min(pos, AFINACAO.length - 1)]; let d = pc == null ? 0 : (((pc - esp % 12) % 12) + 12) % 12; if (d > 6) d -= 12; base = esp + d; pos++; }
+    l.base = base;
+  }
+  const eventos = []; let largura = 0;
+  for (const l of linhas) {
+    largura = Math.max(largura, l.corpo.length);
+    for (let i = 0; i < l.corpo.length; i++) {
+      const ch = l.corpo[i]; if (ch < '0' || ch > '9') continue;
+      let casa = +ch, w = 1; const prox = l.corpo[i + 1];
+      if (prox >= '0' && prox <= '9' && +(ch + prox) <= 24) { casa = +(ch + prox); w = 2; }
+      eventos.push({ col: i, midi: l.base + casa + (semitons || 0) });
+      i += w - 1;
+    }
+  }
+  if (!eventos.length) return null;
+  const barras = []; for (let i = 0; i < linhas[0].corpo.length; i++) if (linhas[0].corpo[i] === '|') barras.push(i);
+  const nome = (m) => (bemol ? N_BEMOL : N_SUST)[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+  const notas = [...new Set(eventos.map((e) => e.midi))].sort((a, b) => b - a);
+  return notas.map((m) => {
+    const arr = new Array(largura).fill('-'); for (const b of barras) arr[b] = '|';
+    for (const e of eventos) if (e.midi === m) arr[e.col] = 'o';
+    return { nota: nome(m), corpo: arr.join('') };
+  });
+}
+
+export { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado };
+globalThis.CifraClub = { normalizaUrl, idDaUrl, parsePre, parsePagina, parseTexto, tituloArtista, tomDoTexto, capoDoTexto, ehAcorde, ehLinhaDeTab, tabParaTeclado };

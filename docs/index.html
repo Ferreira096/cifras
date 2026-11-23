@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-3iQvrmj8FFC4DObUmnAL+DGn029qxIJmKefwqAGWf3I=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-i9wSsmtsXRmmCF+nLlXD2lhTio+ZwJu8hmJRyox4FC8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js"></script>
@@ -91,6 +91,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--sec);margin-top:4px}
 .cifra .c.ativo{background:#3a2a10;color:var(--acorde2)}
 .cifra .sec{color:var(--sec);font-weight:600}
 .cifra .tab{color:#b7b7b7}
+.cifra .tab .nt{color:var(--acorde);font-weight:700}
 .cifra .ln.ac{line-height:1.35}
 
 /* ---------- riffs ---------- */
@@ -655,6 +656,7 @@ function renderAjustes(){
 function tomAtual(it){const t=tomTransposto(it.tom,(it.aj&&it.aj.n)||0); return t?t.nome:(it.tom||'');}
 
 /* ====================== viewer ====================== */
+let modoTab=(()=>{ try{ return localStorage.getItem('cifras.tab')==='guitarra'?'guitarra':'teclado'; }catch(e){ return 'teclado'; } })(); // preferencia do aparelho
 let acordeAtivo='', rolagem={on:false,vel:1,raf:0,acc:0,t:0}, loop={on:false,ini:0,fim:0,timer:0}, player=null, playerVideo='';
 
 function acordesVisiveis(it){
@@ -668,14 +670,28 @@ function renderCifra(it){
   const app=document.getElementById('app'); const {mapa}=acordesVisiveis(it);
   const distintos=[]; for(const l of it.linhas) for(const s of l) if(s&&s.c){const v=mapa(s.c); if(!distintos.includes(v)) distintos.push(v);}
   const tom=tomAtual(it);
-  const linhasHtml=it.linhas.map(l=>{
-    if(!l.length) return '<div class="ln"> </div>';
+  // tablaturas: blocos de linhas "E|--3--" seguidas; no modo teclado viram linhas de teclas
+  const textoDe=(l)=>l.every(s=>typeof s==='string')?l.join(''):null;
+  const ehTab=(l)=>{ const x=textoDe(l); return x!=null&&!!window.CifraClub&&CifraClub.ehLinhaDeTab(x); };
+  const temTab=it.linhas.some(ehTab);
+  const {bemol}=acordesVisiveis(it);
+  const partes=[];
+  for(let i=0;i<it.linhas.length;i++){
+    const l=it.linhas[i];
+    if(ehTab(l)){
+      let j=i; while(j<it.linhas.length&&ehTab(it.linhas[j])) j++;
+      const grupo=it.linhas.slice(i,j).map(textoDe);
+      const teclas=modoTab==='teclado'?CifraClub.tabParaTeclado(grupo,it.aj.n,bemol):null;
+      if(teclas) for(const r of teclas) partes.push(`<div class="ln tab"><span class="nt">${h(r.nota.padEnd(3,' '))}</span>|${h(r.corpo)}</div>`);
+      else for(const x of grupo) partes.push(`<div class="ln tab">${h(x)}</div>`);
+      i=j-1; continue;
+    }
+    if(!l.length){ partes.push('<div class="ln"> </div>'); continue; }
     const temAc=l.some(s=>s&&s.c);
-    const txt=l.map(s=>typeof s==='string'?h(s):s.c).join('');
-    const tab=/^[EADGBe]\|[-0-9hp~/\\|]/.test(txt)||/^\s*[EADGBe]\s*\|/.test(txt);
-    let inner=l.map(s=>{ if(typeof s==='string'){ if(/^\s*\[[^\]]+\]/.test(s)) return h(s).replace(/(\[[^\]]+\])/g,'<span class="sec">$1</span>'); return h(s);} const v=mapa(s.c); return `<span class="c${v===acordeAtivo?' ativo':''}" data-c="${h(v)}">${h(v)}</span>`;}).join('');
-    return `<div class="ln${temAc?' ac':''}${tab?' tab':''}">${inner}</div>`;
-  }).join('');
+    const inner=l.map(s=>{ if(typeof s==='string'){ if(/^\s*\[[^\]]+\]/.test(s)) return h(s).replace(/(\[[^\]]+\])/g,'<span class="sec">$1</span>'); return h(s);} const v=mapa(s.c); return `<span class="c${v===acordeAtivo?' ativo':''}" data-c="${h(v)}">${h(v)}</span>`;}).join('');
+    partes.push(`<div class="ln${temAc?' ac':''}">${inner}</div>`);
+  }
+  const linhasHtml=partes.join('');
   const vid=it.video||'';
   app.innerHTML=`
   <div class="topo"><button class="icone" id="btVoltar">←</button><h1>${h(it.titulo)}<span class="sub">${h(it.artista)}${it.capo?' · capo '+h(it.capo):''}</span></h1>
@@ -684,6 +700,7 @@ function renderCifra(it){
     <div class="tom"><button id="tomMenos">−</button><span class="val" id="tomVal">${h(tom||'?')}</span><button id="tomMais">+</button></div>
     <button id="btSimples" class="${it.aj.simples?'ligado':''}">Simplificar</button>
     <button id="btVideo" class="${vid?'':''}">▶ Video / Riffs</button>
+    ${temTab?`<button id="btTab" title="Trocar entre tablatura de teclado e de guitarra">Tab: ${modoTab==='teclado'?'teclado':'guitarra'}</button>`:''}
     <button id="fMenos" class="mini">A−</button><button id="fMais" class="mini">A+</button>
     <button id="btOrig" class="mini" ${it.aj.n?'':'disabled'}>Tom original</button>
   </div>
@@ -697,6 +714,7 @@ function renderCifra(it){
   app.querySelector('#tomMenos').onclick=()=>{it.aj.n=((it.aj.n-1)+12)%12; if(it.aj.n>6) it.aj.n-=12; salvar(it);};
   app.querySelector('#tomMais').onclick=()=>{it.aj.n=it.aj.n+1; if(it.aj.n>6) it.aj.n-=12; salvar(it);};
   app.querySelector('#btOrig').onclick=()=>{it.aj.n=0; salvar(it);};
+  if(app.querySelector('#btTab')) app.querySelector('#btTab').onclick=()=>{ modoTab=modoTab==='teclado'?'guitarra':'teclado'; try{localStorage.setItem('cifras.tab',modoTab);}catch(e){} render(); };
   app.querySelector('#btSimples').onclick=()=>{it.aj.simples=!it.aj.simples; salvar(it);};
   app.querySelector('#fMenos').onclick=()=>{it.aj.fonte=Math.max(11,it.aj.fonte-1); salvar(it);};
   app.querySelector('#fMais').onclick=()=>{it.aj.fonte=Math.min(28,it.aj.fonte+1); salvar(it);};
