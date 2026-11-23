@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-JGX4i3sQNCrK7niesCDDFT8iSUfCvcorZivJqZh0lU8=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-u3d3IkKEj5Ikm7i/yFv3egE5RrXNJGE3RbMlkLSGZtw=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=2fcdea3270"></script>
@@ -56,6 +56,7 @@ a{color:var(--sec)}
 .vazio{color:var(--tx2);text-align:center;padding:40px 10px;line-height:1.6}
 .aviso{background:#2a1f10;border:1px solid #6b4a1a;color:#ffd39a;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 12px}
 .aviso.erro{background:#2e1414;border-color:#7a2b2b;color:#ffb3b3}
+.aviso a{color:inherit;font-weight:600}
 .rodape{color:var(--tx2);font-size:12px;text-align:center;margin-top:30px;line-height:1.6}
 .card{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;padding:12px;margin-bottom:12px}
 .card h3{margin:0 0 6px;font-size:15px}
@@ -448,32 +449,112 @@ async function buscarPorLink(bruto,progresso){
   return c;
 }
 
-/* pede a Action para baixar o trecho do YouTube e detectar as notas; espera o riff receber "det" */
-async function notasPeloServidor(it,r,progresso){
-  if(!it.video) throw new Error('Cole o link do YouTube da musica primeiro.');
-  if(!(r.fim>r.ini)) throw new Error('Riff sem inicio/fim validos.');
-  if(r.fim-r.ini>120) throw new Error('Trecho grande demais (maximo 2 minutos).');
-  if(!temTokenGuardado()) throw new Error('Esse caminho roda no servidor do GitHub e precisa da sincronização ligada (Ajustes). Sem ela, use microfone, áudio da guia ou arquivo de áudio.');
-  if(!(await garanteToken())) throw new Error('Sincronização travada: informe o PIN para pedir a análise.');
-  const id=it.id, ini=r.ini, fim=r.fim;
-  const acha=()=>{ const i=lib.itens.find(x=>x.id===id); return {item:i,riff:i&&(i.riffs||[]).find(x=>Math.abs(x.ini-ini)<0.05&&Math.abs(x.fim-fim)<0.05)}; };
-  progresso('Gravando o riff no GitHub...');
-  clearTimeout(salvarTimer); await salvarFila;
-  if(!(await enviar())) throw new Error('Nao consegui gravar o riff no GitHub antes de pedir a analise ('+(sinc.msg||'erro')+').');
-  const chave=`notas:${id}:${ini}-${fim}`, antes=JSON.stringify(r.det||null), inicio=Date.now();
-  const resp=await api(`/repos/${GH.owner}/${GH.repo}/dispatches`,{method:'POST',body:JSON.stringify({event_type:'notas',client_payload:{id,video:it.video,ini,fim}})});
-  if(resp.status===401||resp.status===403) throw new Error('O token nao tem permissao para pedir a analise (precisa de Contents: Read and write).');
-  if(!resp.ok&&resp.status!==204) throw new Error('GitHub respondeu '+resp.status);
-  progresso('Pedido enviado. O servidor esta baixando o trecho do YouTube e analisando (1 a 3 min)...');
-  for(let i=0;i<80;i++){
-    await new Promise(res=>setTimeout(res,i<3?5000:6000));
-    let s; try{ s=await lerServidorBruto(); }catch(e){ continue; }
-    const it2=(s.dados.itens||[]).find(x=>x.id===id); const r2=it2&&(it2.riffs||[]).find(x=>Math.abs(x.ini-ini)<0.05&&Math.abs(x.fim-fim)<0.05);
-    if(r2&&r2.det&&r2.det.modo==='youtube'&&JSON.stringify(r2.det)!==antes){ const a=acha(); if(a.riff){ a.riff.det=r2.det; a.item.em=agora(); gravarLocal(); } return r2.det; }
-    try{ const e=await api(`/repos/${GH.owner}/${GH.repo}/contents/docs/dados/ultimo-erro.json?ref=${GH.branch}&t=${Date.now()}`,{cache:'no-store'}); if(e.ok){ const j=await e.json(); const d=JSON.parse(b64d(j.content||'')||'{}'); if(d.erro&&d.chave===chave&&Date.parse(d.em)>inicio-60000) throw new Error(d.erro); } }catch(err){ if(err.message&&!/JSON|token|GitHub/.test(err.message)&&err.message!=='401') throw err; }
-    progresso('Ainda analisando... ('+Math.round((Date.now()-inicio)/1000)+' s). Da para acompanhar na aba Actions do repositorio.');
+/* ====================== notas pelo link do YouTube: o celular pede, o computador responde ======================
+   O navegador nao consegue baixar o audio do YouTube; um computador da pessoa consegue (pasta
+   notas-youtube, fora do site). Os dois conversam por um canal publico de mensagens (ntfy.sh) cujo
+   nome e um codigo secreto criado no computador e guardado so nele e nos aparelhos pareados. Pelo
+   canal passam so o id do video, o inicio/fim e as notas. Pedido sem resposta fica anotado no
+   aparelho (cifras.pedidos) e e conferido de novo ao abrir o app; o canal guarda mensagens por 12 h. */
+const RELE='https://ntfy.sh/';
+const dorme=(ms)=>new Promise(res=>setTimeout(res,ms));
+function normalizaCanal(x){ const s=String(x||'').trim().toLowerCase().replace(/^.*#\/parear\//,'').replace(/^cifras/,'').replace(/[^a-z0-9]/g,''); return s.length===16?'cifras-'+s.match(/.{4}/g).join('-'):''; }
+function canalPC(){ try{ return normalizaCanal(localStorage.getItem('cifras.pc')||''); }catch(e){ return ''; } }
+function guardarCanal(c){ try{ if(c) localStorage.setItem('cifras.pc',c); else { localStorage.removeItem('cifras.pc'); localStorage.removeItem('cifras.pedidos'); } }catch(e){} }
+function lerPedidos(){ try{ const p=JSON.parse(localStorage.getItem('cifras.pedidos')||'[]'); return Array.isArray(p)?p.filter(x=>x&&typeof x.id==='string'&&typeof x.cifra==='string'):[]; }catch(e){ return []; } }
+function gravarPedidos(p){ try{ localStorage.setItem('cifras.pedidos',JSON.stringify(p.slice(-30))); }catch(e){} }
+const tirarPedido=(id)=>gravarPedidos(lerPedidos().filter(x=>x.id!==id));
+const idPedido=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('');
+const mesmoTrecho=(a,b)=>Math.abs(a.ini-b.ini)<0.05&&Math.abs(a.fim-b.fim)<0.05;
+function pedidoDoRiff(it,r){ return lerPedidos().find(p=>p.cifra===it.id&&p.video===it.video&&mesmoTrecho(p,r)); }
+const horaDoPedido=(p)=>{ const d=new Date(p.em), hm=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return d.toDateString()===new Date().toDateString()?'às '+hm:'em '+d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' às '+hm; };
+async function releEnvia(canal,obj){
+  let r; try{ r=await fetch(RELE+canal,{method:'POST',body:JSON.stringify(obj)}); }catch(e){ throw new Error('Sem conexão com o canal de mensagens. Confira a internet e tente de novo.'); }
+  if(!r.ok) throw new Error(r.status===429?'Muitos pedidos em pouco tempo. Espere um minuto e tente de novo.':'O canal de mensagens respondeu '+r.status+'.');
+}
+async function releLe(canal,desde){ // devolve {msgs, ultimo}: as mensagens do canal desde "desde" (12h, 10m ou o id da ultima vista)
+  const r=await fetch(RELE+canal+'/json?poll=1&since='+encodeURIComponent(desde),{cache:'no-store'}); if(!r.ok) throw new Error('canal '+r.status);
+  const msgs=[]; let ultimo='';
+  for(const l of (await r.text()).split('\n')){ if(!l.trim()) continue; try{ const j=JSON.parse(l); if(j.event!=='message') continue; if(typeof j.id==='string') ultimo=j.id; const m=JSON.parse(j.message); if(m&&typeof m==='object'&&typeof m.id==='string') msgs.push(m); }catch(e){} }
+  return {msgs,ultimo};
+}
+/* o que chega pelo canal e tratado como texto de fora: so campos conhecidos, com limite de tamanho */
+function limpaDet(d){ if(!d||typeof d!=='object') return null; const s=(x,n)=>typeof x==='string'?x.slice(0,n):'';
+  const det={notas:s(d.notas,600),seq:s(d.seq,8000),baixo:s(d.baixo,8000),acorde:s(d.acorde,12),resumo:s(d.resumo,17000),modo:'vídeo do YouTube, analisado no computador',em:s(d.em,40)}; return det.notas?det:null; }
+function respostaDe(msgs,id){
+  const meus=msgs.filter(m=>m.id===id), e=meus.find(m=>m.t==='erro'); if(e) return {erro:String(e.erro||'o computador não conseguiu analisar').slice(0,240)};
+  const ps=meus.filter(m=>m.t==='resultado'&&typeof m.txt==='string');
+  if(ps.length){ const de=Math.min(40,+ps[0].de||1), partes=[]; for(let n=1;n<=de;n++){ const p=ps.find(x=>+x.n===n); if(!p) break; partes.push(p.txt); }
+    if(partes.length===de){ let det=null; try{ det=limpaDet(JSON.parse(partes.join(''))); }catch(err){} return det?{det}:{erro:'O computador mandou uma resposta que não consegui ler.'}; } }
+  return {recebido:meus.some(m=>m.t==='recebido'||m.t==='resultado')};
+}
+function acharRiffDoPedido(p){ const item=lib.itens.find(x=>x.id===p.cifra); const riff=item&&item.video===p.video&&(item.riffs||[]).find(x=>mesmoTrecho(x,p)); return riff?{item,riff}:null; }
+const ocupadoNaTela=()=>{ const el=document.activeElement; return !!(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName))||loop.on||rolagem.on||rota().tela==='colar'; };
+function aplicaDet(p,det){ tirarPedido(p.id); const a=acharRiffDoPedido(p); if(!a) return false; a.riff.det=det; if(ocupadoNaTela()){ a.item.em=agora(); gravarLocal(); } else salvar(a.item); return true; }
+const pedindo=new Set(); // pedidos com a tela esperando a resposta agora
+async function notasPeloPC(it,r,progresso){
+  if(!it.video) throw new Error('Cole o link do YouTube da música primeiro.');
+  if(!(r.fim>r.ini)) throw new Error('Riff sem início e fim válidos.');
+  if(r.fim-r.ini>120) throw new Error('Trecho grande demais (máximo 2 minutos).');
+  const canal=canalPC(); if(!canal) throw new Error('Este aparelho ainda não está ligado ao computador (Ajustes).');
+  let p=pedidoDoRiff(it,r), desde='12h';
+  if(!p||Date.now()-p.em>11*3600e3){ // sem pedido em aberto (ou o canal ja esqueceu o antigo): manda um novo
+    if(p) tirarPedido(p.id);
+    p={id:idPedido(),cifra:it.id,video:it.video,ini:r.ini,fim:r.fim,em:Date.now(),de:(p&&p.de)||Date.now()}; desde='10m';
+    progresso('Enviando o pedido ao computador...');
+    await releEnvia(canal,{t:'pedido',id:p.id,video:p.video,ini:p.ini,fim:p.fim});
+    gravarPedidos(lerPedidos().concat(p));
   }
-  throw new Error('A analise nao terminou em 8 min. Veja a aba Actions do repositorio.');
+  progresso('Pedido enviado '+horaDoPedido(p)+'. Esperando o computador responder...');
+  pedindo.add(p.id);
+  try{
+    const t0=Date.now(), todas=[]; let recebido=false, avisou=false;
+    for(let i=0;;i++){
+      try{ const l=await releLe(canal,desde); todas.push(...l.msgs); if(l.ultimo) desde=l.ultimo; }catch(e){}
+      const resp=respostaDe(todas,p.id);
+      if(resp.erro){ tirarPedido(p.id); throw new Error(resp.erro); }
+      if(resp.det){ aplicaDet(p,resp.det); return 'ok'; }
+      if(resp.recebido&&!recebido){ recebido=true; progresso('O computador recebeu o pedido e está analisando o trecho...'); }
+      const s=(Date.now()-t0)/1000;
+      if(!recebido&&s>20&&!avisou){ avisou=true; progresso('O computador ainda não respondeu. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. Continuo esperando mais um pouco...'); }
+      if(s>(recebido?240:70)) return 'espera';
+      await dorme(i<8?2500:6000);
+    }
+  } finally { pedindo.delete(p.id); }
+}
+/* confere, sem ninguem pedir, se chegaram respostas de pedidos antigos (ao abrir o app e de tempos em tempos) */
+let conferindo=false, conferiuEm=0;
+async function conferirPedidos(){
+  const canal=canalPC(); if(!canal||conferindo||Date.now()-conferiuEm<15000) return;
+  const ps=lerPedidos().filter(p=>!pedindo.has(p.id)); if(!ps.length) return;
+  conferindo=true; conferiuEm=Date.now(); let chegou=0, falhou='';
+  try{
+    const {msgs}=await releLe(canal,'12h');
+    for(const p of ps){
+      if(pedindo.has(p.id)) continue;
+      if(!acharRiffDoPedido(p)||Date.now()-(p.de||p.em)>3*864e5){ tirarPedido(p.id); continue; } // riff apagado ou pedido velho demais
+      const resp=respostaDe(msgs,p.id);
+      if(resp.det){ if(aplicaDet(p,resp.det)) chegou++; }
+      else if(resp.erro){ tirarPedido(p.id); falhou=resp.erro; }
+      else if(Date.now()-p.em>11*3600e3){ // o canal esquece em 12 h: refaz o pedido para ele continuar na fila
+        const n={...p,id:idPedido(),em:Date.now()}; try{ await releEnvia(canal,{t:'pedido',id:n.id,video:n.video,ini:n.ini,fim:n.fim}); gravarPedidos(lerPedidos().filter(x=>x.id!==p.id).concat(n)); }catch(e){} }
+    }
+  }catch(e){}
+  conferindo=false;
+  if(chegou) toast(chegou>1?'Chegaram as notas de '+chegou+' riffs':'Chegaram as notas do riff');
+  else if(falhou) toast('O computador não conseguiu analisar um riff: '+falhou,true);
+  if((chegou||falhou)&&rota().tela==='cifra'&&!ocupadoNaTela()) render();
+}
+async function testarPC(){ // devolve em quantos ms o computador respondeu, ou -1
+  const canal=canalPC(), id=idPedido(), t0=Date.now(); await releEnvia(canal,{t:'ping',id});
+  for(let i=0;i<7;i++){ await dorme(i<3?1500:2500); try{ const l=await releLe(canal,'2m'); if(l.msgs.some(m=>m.t==='pong'&&m.id===id)) return Date.now()-t0; }catch(e){} }
+  return -1;
+}
+function parear(bruto){
+  let c=''; try{ c=normalizaCanal(decodeURIComponent(bruto)); }catch(e){}
+  history.replaceState(null,'','#/ajustes'); // o codigo nao fica no endereco nem no historico
+  if(!c){ renderAjustes(); toast('Código do computador inválido',true); return; }
+  if(c!==canalPC()){ if(!confirm('Ligar este aparelho ao computador de código terminado em "'+c.slice(-4)+'"?\n\nConfirme só se o código veio do seu computador.')){ renderAjustes(); return; } guardarCanal(c); }
+  renderAjustes(); const b=document.getElementById('pcTestar'); if(b) b.click();
 }
 function toast(msg,erro){const t=document.getElementById('toast'); t.textContent=msg; t.className='toast'+(erro?' erro':''); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.add('oculto'),erro?4000:2200);}
 const h=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -485,6 +566,7 @@ const ytId=(u)=>{const m=String(u||'').match(/(?:youtu\.be\/|v=|shorts\/|embed\/
 function rota(){
   const m=location.hash.match(/^#\/c\/([^/]+)/); if(m){ try{ return {tela:'cifra',id:decodeURIComponent(m[1])}; }catch(e){ return {tela:'lista'}; } }
   const im=location.hash.match(/^#\/importar\/(.+)$/); if(im) return {tela:'importar',dados:im[1]};
+  const pm=location.hash.match(/^#\/parear\/(.+)$/); if(pm) return {tela:'parear',codigo:pm[1]};
   if(location.hash==='#/ajustes') return {tela:'ajustes'};
   if(location.hash==='#/colar') return {tela:'colar'};
   return {tela:'lista'};
@@ -495,6 +577,7 @@ let carregou=false, esperandoCifra=false; // a biblioteca do site ja foi lida ne
 function render(){
   const r=rota();
   if(r.tela==='importar'){ importar(r.dados); return; }
+  if(r.tela==='parear'){ parear(r.codigo); return; }
   if(r.tela==='cifra'){const it=lib.itens.find(i=>i.id===r.id); if(it) return renderCifra(it);
     if(!carregou){ esperandoCifra=true; document.getElementById('app').innerHTML='<div class="topo"><a class="icone" href="#/" aria-label="Voltar">←</a><h1>Minhas Cifras</h1></div><div class="wrap"><div class="vazio">Abrindo a cifra...</div></div>'; return; }
     history.replaceState(null,'','#/'); }
@@ -628,7 +711,7 @@ function renderColar(){
 
 /* ====================== ajustes: copia de seguranca e sincronizacao (opcional) ====================== */
 function renderAjustes(){
-  const app=document.getElementById('app'), tem=temTokenGuardado(), aberto=!!tok();
+  const app=document.getElementById('app'), tem=temTokenGuardado(), aberto=!!tok(), pc=canalPC(), nPed=lerPedidos().length;
   const estado=!tem?'Desligada. As cifras ficam só neste aparelho.':!aberto?'Ligada, mas travada nesta abertura do app. As mudanças ficam no aparelho até você destravar.':sinc.estado==='erro'?'Ligada, mas a última tentativa falhou: '+sinc.msg+'.':'Ligada.'+(sinc.estado==='ok'?' Última sincronização às '+sinc.msg+'.':'');
   app.innerHTML=`
   <div class="topo"><a class="icone" href="#/" aria-label="Voltar">←</a><h1>Ajustes</h1></div>
@@ -637,6 +720,12 @@ function renderAjustes(){
       <p class="texto">Suas cifras, com tons e riffs, ficam guardadas neste navegador (hoje: ${lib.itens.length}). Limpar os dados do navegador apaga tudo, então salve um arquivo de vez em quando. O mesmo arquivo serve para levar as cifras a outro aparelho.</p>
       <div class="botoes"><button id="bkExp">Salvar arquivo</button><button id="bkImp">Abrir arquivo</button><input type="file" id="bkArq" accept="application/json,.json" class="oculto"></div>
       <div id="bkMsg" role="status" aria-live="polite"></div></div>
+    <div class="card"><h3>Notas pelo link do YouTube <span class="opc">opcional</span></h3>
+      ${pc?`<p class="texto">Este aparelho está ligado ao computador de código terminado em <b>${h(pc.slice(-4))}</b>. No riff, toque em "pelo link do YouTube": o computador baixa o trecho, analisa e devolve as notas aqui. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta; pedido feito com ele desligado espera até 12 horas.${nPed?' Pedidos aguardando resposta: '+nPed+'.':''}</p>
+      <div class="botoes"><button id="pcTestar">Testar a ligação</button><button id="pcDesligar">Desligar deste aparelho</button></div>`
+      :`<p class="texto">O celular não consegue baixar o áudio do YouTube; um computador seu consegue. Ligue os dois uma vez e peça daqui as notas de qualquer trecho. No computador, abra "LIGAR NOTAS DO YOUTUBE" (pasta CIFRAS) e aponte a câmera do celular para o QR code que aparece, ou digite abaixo o código mostrado lá.</p>
+      <div class="add"><input id="pcCod" placeholder="cifras-xxxx-xxxx-xxxx-xxxx" aria-label="Código do computador" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false"><button class="pri" id="pcLigar">Ligar</button></div>`}
+      <div id="pcMsg" role="status" aria-live="polite"></div></div>
     <div class="card"><h3>Sincronizar entre aparelhos <span class="opc">opcional</span></h3>
       <p class="texto">${h(estado)}</p>
       ${!tem?`<p class="texto">Para o celular e o computador mostrarem as mesmas cifras sozinhos, o app grava a biblioteca no seu repositório do GitHub. Precisa de um token do GitHub (fine-grained, só o repositório ${h(GH.repo)}, permissão Contents: Read and write) e de um PIN que você cria aqui. Nada disso é necessário para adicionar ou usar cifras.</p>
@@ -657,6 +746,13 @@ function renderAjustes(){
       const antes=lib.itens.length; mesclar(j); await salvar(); diz('bkMsg','Arquivo lido com '+j.itens.length+' cifras. Novas neste aparelho: '+(lib.itens.length-antes)+'.'); }
     catch(e){ diz('bkMsg','Não consegui ler esse arquivo ('+(e.message||e)+').',true); }
   };
+  if(q('#pcLigar')){ const liga=()=>{ const c=normalizaCanal(q('#pcCod').value); if(!c) return diz('pcMsg','Código incompleto. São 16 letras e números, como aparece na tela do computador.',true); guardarCanal(c); renderAjustes(); const b=document.getElementById('pcTestar'); if(b) b.click(); };
+    q('#pcLigar').onclick=liga; q('#pcCod').onkeydown=(e)=>{ if(e.key==='Enter') liga(); }; }
+  if(q('#pcTestar')) q('#pcTestar').onclick=async()=>{ const b=q('#pcTestar'); b.disabled=true; diz('pcMsg','Chamando o computador...');
+    try{ const ms=await testarPC(); if(ms>=0) diz('pcMsg','O computador respondeu em '+(ms/1000).toFixed(1).replace('.',',')+' s. Pode pedir as notas nos riffs.'); else diz('pcMsg','O computador não respondeu. Ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. Se o código foi trocado lá, desligue aqui e ligue de novo com o código novo.',true); }
+    catch(e){ diz('pcMsg',e.message||String(e),true); }
+    const b2=document.getElementById('pcTestar'); if(b2) b2.disabled=false; };
+  if(q('#pcDesligar')) q('#pcDesligar').onclick=()=>{ if(!confirm('Desligar este aparelho do computador? As notas já recebidas continuam nos riffs.')) return; guardarCanal(''); renderAjustes(); };
   const depois=(ok)=>{ renderAjustes(); diz('sMsg',ok?'Sincronizado.':'Não sincronizou: '+(sinc.msg||'operação cancelada')+'.',!ok); };
   if(q('#sLigar')) q('#sLigar').onclick=async()=>{ if(await pedirToken()){ diz('sMsg','Sincronizando...'); depois(await sincronizarAgora()); } };
   if(q('#sDestravar')) q('#sDestravar').onclick=async()=>{ if(await garanteToken()){ diz('sMsg','Sincronizando...'); depois(await sincronizarAgora()); } };
@@ -782,7 +878,7 @@ function painelRiffs(it){
         <button class="mini det" data-i="${i}" data-modo="mic">microfone</button>
         <button class="mini det" data-i="${i}" data-modo="aba">áudio da guia (PC)</button>
         <button class="mini det" data-i="${i}" data-modo="arquivo">arquivo de áudio</button></div>
-      <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r); return det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:''; })()}</div>
+      <div class="detResultado" id="det${i}">${(()=>{ const det=r.det||detPronta(it,r), ped=pedidoDoRiff(it,r); return (det?`${htmlDeteccao(det,T)}<div class="dica" style="margin:2px 0 0">${T.n?`No tom da tela (${h(tomTela)}). `:''}Detectado em ${h(det.em||'')} · ${h(det.modo||'')}</div>`:'')+(ped?`<div class="aviso">Pedido das notas enviado ${h(horaDoPedido(ped))}. Aguardando o computador: ele precisa estar ligado, com a janela "LIGAR NOTAS DO YOUTUBE" aberta. O pedido vale por 12 horas e as notas aparecem aqui quando chegarem.</div>`:''); })()}</div>
       ${r.notas?`<div class="dica" style="margin:6px 0 0">Suas notas${T.n?` (no tom da tela, ${h(tomTela)})`:''}:</div><div class="notas" style="margin-top:2px">${h(T.t(r.notas))}</div><div class="pianinho">${pianoSvg(marcasDeNotas(T.t(r.notas)),{lb:12,h:40})}</div>`:''}
       ${r.obs?`<div class="obs">${h(r.obs)}</div>`:''}
     </div>`).join('')}</div>
@@ -830,7 +926,9 @@ function ligarRiffs(it){
     catch(e){ caixa.innerHTML='<div class="aviso erro">'+h(e.message||String(e))+'</div>'; }
   };
   app.querySelectorAll('.det').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, modo=b.dataset.modo;
-    if(modo==='youtube'){ const caixa=q('#det'+i); const prog=(t)=>{ caixa.innerHTML='<div class="aviso">'+h(t)+'</div>'; }; b.disabled=true; notasPeloServidor(it,it.riffs[i],prog).then(()=>{ toast('Notas detectadas'); render(); }).catch(e=>{ caixa.innerHTML='<div class="aviso erro">'+h(e.message||String(e))+'</div>'; b.disabled=false; }); return; }
+    if(modo==='youtube'){ const caixa=q('#det'+i), id=it.id; const prog=(x)=>{ const c=document.getElementById('det'+i), r0=rota(); if(c&&r0.tela==='cifra'&&r0.id===id) c.innerHTML='<div class="aviso">'+h(x)+'</div>'; };
+      if(!canalPC()){ caixa.innerHTML='<div class="aviso">Para pedir as notas por aqui, ligue este aparelho ao seu computador uma vez, em <a href="#/ajustes">Ajustes</a>. Sem isso, use o microfone ou um arquivo de áudio.</div>'; return; }
+      b.disabled=true; notasPeloPC(it,it.riffs[i],prog).then(res=>{ if(res==='ok') toast('Notas detectadas'); else if(rota().tela==='cifra'&&!ocupadoNaTela()) render(); }).catch(e=>{ const c=document.getElementById('det'+i); if(c) c.innerHTML='<div class="aviso erro">'+h(e.message||String(e))+'</div>'; b.disabled=false; }); return; }
     if(modo==='arquivo'){ const inp=q('#arqAudio'); inp.onchange=()=>{ if(inp.files[0]) rodarDet(i,'arquivo',inp.files[0]); inp.value=''; }; inp.click(); return; } q('#video').classList.remove('oculto'); garantePlayer(it,()=>rodarDet(i,modo)); });
   app.querySelectorAll('.tocar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; const card=b.closest('.riff'); if(loop.on&&loop.ini===r.ini&&loop.fim===r.fim){pararLoop(); return;} q('#video').classList.remove('oculto'); garantePlayer(it,()=>tocarLoop(r,card));});
 }
@@ -862,6 +960,9 @@ function iniciar(){
   if(comp==='?') setTimeout(()=>toast('O que foi compartilhado não é um link de cifra do Cifra Club',true),300);
   else if(comp){ pendenteAdd=comp; history.replaceState(null,'','#/'); }
   render();
+  conferirPedidos();
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') conferirPedidos(); });
+  setInterval(()=>{ if(document.visibilityState==='visible') conferirPedidos(); },30000);
   carregarProntas().then(tem=>{ const el=document.activeElement; if(tem&&rota().tela==='cifra'&&!(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName))&&!loop.on) render(); });
   carregarServidor().then(mudou=>{ carregou=true; if(esperandoCifra){ esperandoCifra=false; render(); return; } const el=document.activeElement; const digitando=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName); if(mudou&&!digitando&&rota().tela!=='colar'&&!document.querySelector('#btAdd:disabled')) render(); });
 }

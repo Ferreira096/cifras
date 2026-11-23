@@ -41,7 +41,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://i.ytimg.com",
   // r.jina.ai: leitor publico que devolve a pagina do Cifra Club (busca por link, sem token)
-  "connect-src 'self' https://api.github.com https://r.jina.ai",
+  "connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "manifest-src 'self'",
   "worker-src 'self'",

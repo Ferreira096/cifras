@@ -63,10 +63,8 @@ Em cada riff (trecho do video, ex.: 1:48 a 1:54) o app detecta as notas por:
                        sem fone, aparelho perto do alto-falante.
   audio da guia (PC)   Chrome/Edge: escolha ESTA guia e marque "Compartilhar audio da guia".
   arquivo de audio     mp3/m4a/wav da musica; analisa so o trecho. O mais preciso.
-  pelo link do YouTube roda numa GitHub Action. Exige a sincronizacao ligada (a Action
-                       precisa do token para ser chamada) E o secret YT_COOKIES no
-                       repositorio, porque o YouTube barra os servidores do GitHub
-                       ("Sign in to confirm you're not a bot"). Sem os dois, use os outros.
+  pelo link do YouTube o celular pede e um computador seu responde (ver abaixo). E o caminho
+                       para o dia a dia no celular: toca no botao e as notas chegam em segundos.
 O resultado, em cada riff:
   Notas base do riff   as notas da linha do meio/agudo (o que a guitarra ou o teclado faz),
                        na ordem em que aparecem, sem repetir. E o que tocar na mao direita.
@@ -86,12 +84,37 @@ Deteccoes prontas: docs/dados/deteccoes.json guarda analises feitas fora do apar
 propria. A do exemplo (Poderoso Nome, clipe oficial, 1:48 a 1:54) foi feita no computador,
 que consegue baixar o audio do YouTube (os servidores do GitHub nao conseguem).
 
+NOTAS PELO LINK DO YOUTUBE, PEDINDO DO CELULAR
+----------------------------------------------
+O navegador (celular ou PC) nao consegue baixar o audio do YouTube, e os servidores do GitHub
+sao barrados pelo YouTube. Um computador comum consegue. Por isso sao duas pecas:
+  no computador  pasta CIFRAS\notas-youtube (fora deste repositorio, nunca publicada) e o
+                 atalho CIFRAS\LIGAR NOTAS DO YOUTUBE.bat. Com a janela aberta, o programa
+                 (servidor.mjs) espera pedidos, baixa o audio (yt-dlp), corta o trecho (ffmpeg),
+                 roda a mesma analise do app (docs/analise.js) e devolve as notas.
+  no app         Ajustes > "Notas pelo link do YouTube": liga o aparelho ao computador.
+Ligar (uma vez por aparelho): abra o .bat no computador; ele mostra um QR code e um codigo
+(cifras-xxxx-xxxx-xxxx-xxxx). Aponte a camera do celular para o QR code e confirme, ou digite
+o codigo em Ajustes. "Testar a ligacao" diz se o computador esta respondendo.
+Usar: no riff, "pelo link do YouTube". Com o computador ligado, as notas chegam em 3 a 15 s.
+Com ele desligado, o pedido fica na fila por ate 12 horas (o app refaz o pedido sozinho por
+ate 3 dias, sempre que e aberto) e as notas aparecem no riff quando o computador atender.
+Como conversam: por um canal publico de mensagens (ntfy.sh) cujo nome e o codigo. Sem conta,
+sem token, sem senha. Pelo canal passam so: id do video, inicio/fim e as notas detectadas.
+Limites no computador: trecho de ate 2 min, 80 analises novas por dia, uma de cada vez; o
+resultado de um trecho ja analisado sai da memoria, na hora. O audio dos 15 ultimos videos
+fica em notas-youtube\cache. Se o YouTube mudar e o download falhar, o programa atualiza o
+yt-dlp (uma vez por dia, no maximo) e tenta de novo.
+Trocar o codigo (se vazar): feche a janela e rode "node servidor.mjs --novo-codigo" na pasta
+notas-youtube; depois ligue os aparelhos de novo. Abrir o QR code de novo: "PAREAR O
+CELULAR.html" na mesma pasta.
+
 SEGURANCA
 ---------
   - Fora dos buscadores: meta robots e docs/robots.txt. O repositorio e publico.
   - Content-Security-Policy na <meta>: script so do proprio site (o inline por hash
-    SHA-256) e do player do YouTube; conexoes so ao site, a api.github.com e ao leitor
-    r.jina.ai; frames so do YouTube.
+    SHA-256) e do player do YouTube; conexoes so ao site, a api.github.com, ao leitor
+    r.jina.ai e ao canal ntfy.sh; frames so do YouTube.
     ATENCAO: mudou qualquer arquivo de docs/? Rode "node scripts/csp.mjs" antes de subir.
     Sem isso a pagina abre em branco (hash velho) ou o app instalado nao percebe a mudanca.
   - Tudo que vem de fora (leitor, favorito, texto colado, arquivo de backup, JSON) e
@@ -101,6 +124,13 @@ SEGURANCA
   - Token (so se ligar a sincronizacao): fine-grained, um repositorio, com validade,
     cifrado no aparelho (AES-GCM, chave por PBKDF2 a partir do PIN). Todos os sites
     *.github.io do mesmo usuario dividem o mesmo armazenamento, por isso o PIN.
+  - Canal das notas (ntfy.sh): e um terceiro e ve o id do video, o trecho e as notas. O
+    codigo e a chave: fica so no computador (notas-youtube\config.json) e no aparelho, nunca
+    no repositorio. Quem tiver o codigo consegue pedir analises ao computador e ler as
+    respostas; nao consegue mais nada: o programa so aceita id de video valido + trecho de
+    ate 2 min, chama o yt-dlp sem shell e tem limite diario. O que chega pelo canal entra no
+    app por campos conhecidos, com limite de tamanho, e e escapado na tela. O link de parear
+    pede confirmacao e sai do endereco assim que e lido.
   - Action: permissao so "contents: write", actions travadas por hash de commit.
 
 PUBLICAR MUDANCAS
@@ -122,5 +152,9 @@ ARQUIVOS
   docs/dados/deteccoes.json   notas de riffs analisadas fora do aparelho
   scripts/csp.mjs            recalcula o hash da CSP
   scripts/notas.mjs, aplicar.mjs, buscar.mjs, cifraclub.mjs   o que a Action roda
-  .github/workflows/buscar-cifra.yml   a Action (notas do YouTube; a busca de cifra por
-                             la e barrada pelo Cifra Club e o app nao usa mais)
+  .github/workflows/buscar-cifra.yml   a Action. O app nao usa mais: o Cifra Club barra a
+                             busca de cifra por la e o YouTube barra o download do audio.
+Fora do repositorio (so no computador):
+  ..\notas-youtube\servidor.mjs   atende os pedidos de notas feitos no celular
+  ..\notas-youtube\config.json    o codigo de pareamento (nao publicar)
+  ..\LIGAR NOTAS DO YOUTUBE.bat   abre o programa

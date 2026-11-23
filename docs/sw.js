@@ -7,7 +7,7 @@
    - dados/: rede primeiro e guarda; sem rede, a ultima resposta.
    - YouTube, api.github.com e o leitor: nunca passam por aqui.
    CACHE e CASCA sao carimbados por scripts/csp.mjs; nao editar a mao. */
-const CACHE = 'cifras-0010a5ba32';
+const CACHE = 'cifras-a8a6e25fbf';
 const CASCA = ['./', 'manifest.json', 'icone-192.png', 'icone-512.png', 'cifraclub.js?v=2fcdea3270', 'analise.js?v=e4d77c81fa', 'dados/biblioteca.json'];
 const RAIZ = self.registration.scope; // .../cifras/
 
