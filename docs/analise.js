@@ -1,6 +1,6 @@
 /* Analise de audio: usada pelo app (navegador) e pelo programa de notas (Node, no computador e no Termux).
-   O programa de notas tira a SEQUENCIA do riff de um modelo de notas (mais abaixo, "modelo de notas");
-   o que segue vale para o app no navegador e como reserva quando o modelo nao carrega.
+   A SEQUENCIA do riff sai de um modelo de notas (mais abaixo, "modelo de notas"), no programa de
+   notas e no app; o que segue da as notas/acorde e e a reserva quando o modelo nao carrega.
    Sem dependencias. Como a sequencia de notas do riff e achada (reescrito em 23/11/2026, medido
    contra melodias sinteticas e riffs conhecidos: ver LEIA-ME, "Quanto a deteccao acerta"):
    1. espectro por quadro (janela 4096, passo 512 a 22050 Hz) -> picos com frequencia interpolada;
@@ -121,7 +121,7 @@ function analisarPCM(pcm, sr) {
   if (!seq.length || (baixo.length && comA && harm / comA >= 0.85)) return { notas, acorde, seq: limpa(baixo), baixo: [], dur }; // a linha aguda era so harmonico da grave: o riff e a grave
   return { notas, acorde, seq: limpa(seq), baixo, dur };
 }
-/* ---- modelo de notas (so o programa de notas usa; o app no navegador fica na analise acima) ----
+/* ---- modelo de notas (programa de notas e, desde 23/11/2026, tambem microfone/guia/arquivo no app) ----
    A sequencia do riff sai melhor com um modelo treinado para transcrever notas (basic-pitch, da
    Spotify, licenca Apache-2.0; arquivo docs/programa/modelo/nmp.onnx) do que so com o espectro:
    medido em 23/11/2026 em 18 riffs conhecidos, 80% das notas contra 66% (ver LEIA-ME). O modelo
@@ -262,4 +262,4 @@ function sequenciaNomes(det,n,bemol){
 }
 
 export { analisarPCM, criaModelo, linhaDoModelo, analisarComModelo, textoDeteccao, nomeMidi, fft, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };
-globalThis.Analise = { analisarPCM, textoDeteccao, nomeMidi, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };
+globalThis.Analise = { analisarPCM, criaModelo, linhaDoModelo, analisarComModelo, textoDeteccao, nomeMidi, transporNotas, sequenciaDe, notasBase, roloDeNotas, temposDeNotas, sequenciaNomes };

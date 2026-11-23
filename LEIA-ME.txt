@@ -76,16 +76,22 @@ guardando tudo (campos seq, baixo, acorde).
 AS NOTAS ACOMPANHAM O TOM: detectadas ou digitadas, elas ficam guardadas no tom original da
 cifra e aparecem no tom que estiver na tela. Mudou o tom, o riff muda junto. Ao digitar,
 escreva no tom da tela.
-DOIS JEITOS DE DETECTAR (desde 23/11/2026)
-  modelo de notas   so no "pelo link do YouTube": o programa de notas (celular ou computador)
-                    usa um modelo treinado para transcrever notas (basic-pitch, da Spotify;
-                    docs/programa/modelo, ~15 MB, roda dentro do proprio Node) e tira dele a
-                    linha do riff. E o que acerta mais.
-  analise simples   pelo espectro, sem modelo: microfone, audio da guia e arquivo (o app no
-                    navegador nao carrega o modelo) e reserva do programa se o modelo nao abrir.
+COMO DETECTA (desde 23/11/2026)
+  modelo de notas   em todos os caminhos: um modelo treinado para transcrever notas
+                    (basic-pitch, da Spotify; docs/programa/modelo, ~15 MB) da as notas, e
+                    docs/analise.js tira delas a linha do riff. No "pelo link do YouTube" roda
+                    dentro do programa de notas (Node); no microfone, audio da guia e arquivo
+                    roda no proprio navegador (WebAssembly). No navegador o modelo so e baixado
+                    quando alguem pede uma dessas deteccoes: ~15 MB na primeira vez, guardados
+                    pelo service worker num cache proprio (atualizar o app nao baixa de novo).
+  analise simples   pelo espectro, sem modelo: e a reserva, quando o modelo nao carrega (sem
+                    internet na primeira vez, navegador antigo). Tambem da as notas e o acorde.
+  Arquivo de audio no navegador x programa de notas, mesmos 4 trechos: 1 nota diferente em 207.
+  Para arquivo vale, entao, a medicao abaixo. Para MICROFONE nao ha medicao: o som passa pelo
+  alto-falante e pela sala antes de chegar ao modelo, e deve acertar menos que os outros.
 QUANTO A DETECCAO ACERTA (medido em 23/11/2026; refazer com: node scripts/avalia/mede.mjs)
   18 riffs conhecidos baixados do YouTube, comparados com as notas publicadas (224 notas):
-      modelo de notas   179 = 80%      analise simples   148 = 66%
+      modelo de notas   179 = 80%      analise simples   148 = 66%   (audio limpo)
   12 melodias sinteticas com gabarito exato (103 notas):
       modelo de notas   101 = 98%      analise simples   100 = 97%
   Por riff, com o modelo (entre parenteses, a analise simples):
@@ -179,7 +185,8 @@ SEGURANCA
   - Fora dos buscadores: meta robots e docs/robots.txt. O repositorio e publico.
   - Content-Security-Policy na <meta>: script so do proprio site (o inline por hash
     SHA-256) e do player do YouTube; conexoes so ao site, a api.github.com, ao leitor
-    r.jina.ai e ao canal ntfy.sh; frames so do YouTube.
+    r.jina.ai e ao canal ntfy.sh; frames so do YouTube. 'wasm-unsafe-eval' deixa compilar
+    WebAssembly (o modelo de notas, servido pelo proprio site); nao libera eval de JavaScript.
     ATENCAO: mudou qualquer arquivo de docs/? Rode "node scripts/csp.mjs" antes de subir.
     Sem isso a pagina abre em branco (hash velho) ou o app instalado nao percebe a mudanca.
   - Tudo que vem de fora (leitor, favorito, texto colado, arquivo de backup, JSON) e

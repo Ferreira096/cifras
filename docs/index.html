@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-3Ctj67EzCzPVoCNjBtZrjdooEzp+hovdOEFBpdmkye0=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-K6tu4NZtx7pnDa6VvYlDrhb1MfQpKV1ha5N0w2btiFE=' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://api.github.com https://r.jina.ai https://ntfy.sh; frame-src https://www.youtube.com https://www.youtube-nocookie.com; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Minhas Cifras</title>
 <link rel="manifest" href="manifest.json">
 <script type="module" src="cifraclub.js?v=48499b4c37"></script>
-<script type="module" src="analise.js?v=ce2150da5b"></script>
+<script type="module" src="analise.js?v=2343a5971b"></script>
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
@@ -268,8 +268,8 @@ function marcasDeNotas(txt){
 }
 
 /* ====================== deteccao de notas (audio) ======================
-   A analise em si (FFT, chroma, acorde provavel, sequencia) esta em analise.js, que a
-   GitHub Action tambem usa. O YouTube nao entrega o audio ao site (iframe de outra origem),
+   A analise em si (modelo de notas para a sequencia; FFT/chroma para notas e acorde) esta em
+   analise.js, que o programa de notas tambem usa. O YouTube nao entrega o audio ao site (iframe de outra origem),
    entao aqui so captamos: microfone (celular), audio da guia (PC) ou arquivo. */
 const esperar=(cond,ms)=>new Promise((res,rej)=>{ const t0=Date.now(); const id=setInterval(()=>{ let ok=false; try{ ok=cond(); }catch(e){} if(ok){clearInterval(id);res();} else if(Date.now()-t0>ms){clearInterval(id);rej(new Error('O video nao chegou ao trecho a tempo.'));} },60); });
 async function captarTrecho(r,modo,progresso){
@@ -294,8 +294,7 @@ async function captarTrecho(r,modo,progresso){
   } finally { try{proc.disconnect();src.disconnect();mudo.disconnect();}catch(e){} stream.getTracks().forEach(t=>t.stop()); ac.close(); }
   let n=0; for(const p of pedacos) n+=p.length; const pcm=new Float32Array(n); let o=0; for(const p of pedacos){ pcm.set(p,o); o+=p.length; }
   if(n<ac.sampleRate*0.5) throw new Error('Captei menos de meio segundo. Tente de novo.');
-  progresso('Analisando...');
-  return Analise.analisarPCM(pcm,ac.sampleRate);
+  return analisarAudio(pcm,ac.sampleRate,progresso);
 }
 async function analisarArquivo(r,arquivo,progresso){
   progresso('Lendo o arquivo...');
@@ -304,7 +303,40 @@ async function analisarArquivo(r,arquivo,progresso){
   const sr=buf.sampleRate, a=Math.floor(Math.max(0,r.ini)*sr), b=Math.min(buf.length,Math.ceil(r.fim*sr));
   if(b-a<sr*0.3) throw new Error('O arquivo e mais curto que o trecho do riff ('+fmtT(buf.duration)+').');
   const pcm=new Float32Array(b-a); for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c); for(let i=a;i<b;i++) pcm[i-a]+=d[i]/buf.numberOfChannels; }
-  ac.close(); progresso('Analisando...');
+  ac.close();
+  return analisarAudio(pcm,sr,progresso);
+}
+/* Modelo de notas no navegador: o MESMO do programa de notas (programa/modelo: basic-pitch em ONNX,
+   rodando por onnxruntime-web em WebAssembly, um nucleo). Carrega so quando alguem pede uma deteccao
+   por microfone, guia ou arquivo: uns 15 MB na primeira vez, que o service worker guarda num cache
+   proprio. Se nao carregar (sem internet na primeira vez, navegador antigo), fica a analise simples. */
+let modeloNav=null;
+function carregarModeloNav(){
+  if(!modeloNav) modeloNav=(async()=>{
+    if(typeof WebAssembly!=='object'||typeof Analise.criaModelo!=='function') throw new Error('sem WebAssembly');
+    const base=new URL('programa/modelo/',location.href.split(/[?#]/)[0]).href;
+    const m=await import(base+'ort.wasm.bundle.min.mjs'), ort=m.default&&m.default.InferenceSession?m.default:m;
+    ort.env.wasm.numThreads=1; ort.env.wasm.proxy=false; ort.env.wasm.wasmPaths=base;
+    const r=await fetch(base+'nmp.onnx'); if(!r.ok) throw new Error('modelo: HTTP '+r.status);
+    return Analise.criaModelo(ort,new Uint8Array(await r.arrayBuffer()));
+  })().catch(e=>{ modeloNav=null; throw e; });
+  return modeloNav;
+}
+async function reamostrar(pcm,sr){ // o modelo espera 22050 Hz; o navegador grava/decodifica a 44100 ou 48000
+  if(sr===22050) return pcm;
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext, oc=new OAC(1,Math.max(1,Math.ceil(pcm.length*22050/sr)),22050);
+  const b=oc.createBuffer(1,pcm.length,sr); b.getChannelData(0).set(pcm);
+  const s=oc.createBufferSource(); s.buffer=b; s.connect(oc.destination); s.start();
+  return new Float32Array((await oc.startRendering()).getChannelData(0));
+}
+async function analisarAudio(pcm,sr,progresso){
+  try{
+    progresso('Carregando o modelo de notas (na primeira vez, uns 15 MB)...');
+    const posteriores=await carregarModeloNav();
+    progresso('Analisando...');
+    return await Analise.analisarComModelo(await reamostrar(pcm,sr),22050,posteriores);
+  }catch(e){ if(/Trecho curto|Nao captei som/.test(String(e&&e.message))) throw e; } // erro do audio, nao do modelo: vale para os dois
+  progresso('Analisando (sem o modelo de notas)...');
   return Analise.analisarPCM(pcm,sr);
 }
 
@@ -988,7 +1020,7 @@ function ligarRiffs(it){
   q('#rApagar').onclick=()=>{ if(editando>=0&&confirm('Apagar este riff?')){ esquece(it.riffs[editando]); it.riffs.splice(editando,1); limpar(); salvar(it); } };
   app.querySelectorAll('.editar').forEach(b=>b.onclick=()=>{const r=it.riffs[+b.dataset.i]; editando=+b.dataset.i; q('#formTitulo').textContent='Editando: '+(r.nome||'riff'); q('#rNome').value=r.nome||''; q('#rIni').value=fmtT(r.ini); q('#rFim').value=fmtT(r.fim); q('#rNotas').value=notasNoTom(it).t(r.notas||''); q('#rObs').value=r.obs||''; q('#rCancelar').classList.remove('oculto'); q('#rApagar').classList.remove('oculto'); q('#rSalvar').textContent='Salvar alteracao'; q('#formRiff').scrollIntoView({behavior:'smooth',block:'start'});});
   app.querySelectorAll('.apagarRiff').forEach(b=>b.onclick=()=>{ const r=it.riffs[+b.dataset.i]; if(!confirm('Apagar o riff "'+(r.nome||('Riff '+(+b.dataset.i+1)))+'"?')) return; pararLoop(); esquece(r); it.riffs.splice(+b.dataset.i,1); if(editando===+b.dataset.i) limpar(); salvar(it); toast('Riff apagado'); });
-  const mostrarDet=(i,r,d,modo)=>{ const tx=Analise.textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,baixo:tx.baixo,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; salvar(it); };
+  const mostrarDet=(i,r,d,modo)=>{ const tx=Analise.textoDeteccao(d); r.det={notas:tx.notas,seq:tx.seq,baixo:tx.baixo,acorde:d.acorde,resumo:tx.resumo,modo,em:new Date().toLocaleString('pt-BR')}; if(d.motor==='modelo') r.det.g=2; salvar(it); };
   const rodarDet=async(i,modo,arquivo)=>{
     const r=it.riffs[i], caixa=q('#det'+i); const prog=(t)=>{ caixa.innerHTML='<div class="aviso">'+h(t)+'</div>'; };
     try{ const d=arquivo?await analisarArquivo(r,arquivo,prog):await captarTrecho(r,modo,prog); mostrarDet(i,r,d,modo==='mic'?'microfone':modo==='aba'?'audio da guia':'arquivo '+arquivo.name); }

@@ -39,7 +39,8 @@ if (!hashes.length) throw new Error('nenhum script inline encontrado');
 const csp = [
   "default-src 'none'",
   // 'self' libera os modulos do proprio site (cifraclub.js, analise.js); o script inline entra pelo hash
-  `script-src 'self' ${hashes.join(' ')} https://www.youtube.com https://s.ytimg.com`,
+  // 'wasm-unsafe-eval': deixa compilar WebAssembly (o modelo de notas, onnxruntime-web); nao libera eval de JavaScript
+  `script-src 'self' 'wasm-unsafe-eval' ${hashes.join(' ')} https://www.youtube.com https://s.ytimg.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://i.ytimg.com",
   // r.jina.ai: leitor publico que devolve a pagina do Cifra Club (busca por link, sem token)
@@ -62,6 +63,11 @@ let sw = le('sw.js');
 const casca = ['./', 'manifest.json', 'icone-192.png', 'icone-512.png', ...MODULOS.map((m) => m + '?v=' + versoes[m]), 'dados/biblioteca.json'];
 if (!/const CASCA = \[[^\]]*\];/.test(sw) || !/const CACHE = '[^']*';/.test(sw)) throw new Error('sw.js sem CACHE/CASCA');
 sw = sw.replace(/const CASCA = \[[^\]]*\];/, 'const CASCA = [' + casca.map((c) => "'" + c + "'").join(', ') + '];');
+// cache do modelo de notas: o nome so muda quando os arquivos do modelo mudam
+const DIR_MODELO = new URL('programa/modelo/', DOCS);
+const carimboModelo = sha(fs.readdirSync(DIR_MODELO).filter((n) => /\.(onnx|wasm|mjs)$/.test(n)).sort().map((n) => n + ':' + crypto.createHash('sha256').update(fs.readFileSync(new URL(n, DIR_MODELO))).digest('hex')).join('|')).slice(0, 10);
+if (!/const MODELO = '[^']*';/.test(sw)) throw new Error('sw.js sem MODELO');
+sw = sw.replace(/const MODELO = '[^']*';/, `const MODELO = 'cifras-modelo-${carimboModelo}';`);
 const corpo = sw.replace(/const CACHE = '[^']*';/, '');
 const carimbo = sha(html + MODULOS.map(le).join('') + le('manifest.json') + corpo).slice(0, 10);
 sw = sw.replace(/const CACHE = '[^']*';/, `const CACHE = 'cifras-${carimbo}';`);
